@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Error — CS:GO{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card" style="border-color: var(--danger);">
+                <div class="card-header" style="background: var(--danger-light);">
+                    <h4 style="color: var(--danger);">Error</h4>
+                </div>
+                <div class="card-body">
+                    <p style="color: var(--text-body);">{{ message }}</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">Volver al Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

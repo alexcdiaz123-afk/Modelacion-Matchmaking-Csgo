@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}Variable Aleatoria Continua — CS:GO Matchmaking{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Variable Aleatoria Continua</h1>
+        <p class="page-subtitle">Ajuste de distribuciones continuas, pruebas de bondad de ajuste y normalidad sobre <code class="text-info fs-5">{{ column }}</code></p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small fw-bold mb-0">Nivel de Significancia (α):</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary w-auto" id="alphaSelect" onchange="updateAlpha()">
+            <option value="0.01" {% if alpha == 0.01 %}selected{% endif %}>α = 0.01 (99% confianza)</option>
+            <option value="0.05" {% if alpha == 0.05 %}selected{% endif %}>α = 0.05 (95% confianza)</option>
+            <option value="0.10" {% if alpha == 0.10 %}selected{% endif %}>α = 0.10 (90% confianza)</option>
+        </select>
+    </div>
+</div>
+
+<!-- Estadísticas Descriptivas Exhaustivas -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:,}".format(stats.n) }}</div>
+        <div class="stat-label">Observaciones (N)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.2f}".format(stats.min) }}</div>
+        <div class="stat-label">Mínimo</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.2f}".format(stats.max) }}</div>
+        <div class="stat-label">Máximo</div>
+    </div>
+    <div class="stat-card accent">
+        <div class="stat-value">{{ "{:.4f}".format(stats.mean) }}</div>
+        <div class="stat-label">Media (x̄)</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-value">{{ "{:.4f}".format(stats.median) }}</div>
+        <div class="stat-label">Mediana (Q2)</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-value">{{ "{:.4f}".format(stats.std) }}</div>
+        <div class="stat-label">Desv. Estándar (s)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.4f}".format(stats.var) }}</div>
+        <div class="stat-label">Varianza (s²)</div>
+    </div>
+</div>
+
+<!-- Medidas de Forma y Percentiles -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark py-2">
+                <h6 class="mb-0 text-muted small text-uppercase fw-bold">Momentos y Medidas de Forma</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center g-2">
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-dark border border-secondary">
+                            <small class="text-muted d-block">Asimetría (Skewness)</small>
+                            <strong class="fs-5 text-light">{{ "{:.4f}".format(stats.skewness) }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-dark border border-secondary">
+                            <small class="text-muted d-block">Curtosis</small>
+                            <strong class="fs-5 text-light">{{ "{:.4f}".format(stats.kurtosis) }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-dark border border-secondary">
+                            <small class="text-muted d-block">Rango Intercuartil</small>
+                            <strong class="fs-5 text-light">{{ "{:.2f}".format(stats.iqr) }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark py-2">
+                <h6 class="mb-0 text-muted small text-uppercase fw-bold">Cuantiles y Percentiles Principales</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between text-center flex-wrap gap-1">
+                    {% for p in [5, 10, 25, 50, 75, 90, 95] %}
+                    <div class="px-2 py-1 rounded bg-dark border border-secondary">
+                        <small class="text-muted d-block">P{{ p }}</small>
+                        <strong class="text-light">{{ "{:.2f}".format(stats.percentiles['p' ~ p]) }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos Exploratorios: Histograma + Densidad y Boxplot -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Histograma y Densidad Kernel (KDE)</h5>
+                <span class="badge bg-secondary">Estimación Empírica</span>
+            </div>
+            <div class="card-body">
+                <div id="histKdeChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Diagrama de Caja y Bigotes (Boxplot)</h5>
+                <span class="badge bg-secondary">Dispersión y Outliers</span>
+            </div>
+            <div class="card-body">
+                <div id="boxplotChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico ECDF y Superposición de Distribución Ajustada -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Función de Distribución Acumulada (ECDF)</h5>
+                <span class="badge bg-secondary">Probabilidad Acumulada</span>
+            </div>
+            <div class="card-body">
+                <div id="ecdfChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Superposición: Histograma Real + Curva Ajustada</h5>
+                <span class="badge bg-info text-dark">{{ selected_dist }} (Fitted PDF)</span>
+            </div>
+            <div class="card-body">
+                <div id="overlayFitChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ajuste de Distribuciones Continuas y Kolmogorov-Smirnov -->
+<div class="card mb-4" style="border-top: 3px solid var(--blue);">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0">Ajuste de Distribuciones Candidatas y Prueba de Kolmogorov-Smirnov (KS)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-bordered mb-0 align-middle">
+                <thead class="table-primary text-uppercase small">
+                    <tr>
+                        <th>Distribución</th>
+                        <th>Parámetros Estimados (MLE)</th>
+                        <th>Estadístico KS (D)</th>
+                        <th>p-valor</th>
+                        <th>Decisión (α = {{ alpha }})</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dist in dist_results %}
+                    <tr class="{% if dist.name == selected_dist %}table-active border-info{% endif %}">
+                        <td>
+                            <strong class="text-light">{{ dist.name }}</strong>
+                            <div class="small text-muted">{{ dist.description }}</div>
+                        </td>
+                        <td>
+                            {% if dist.valid %}
+                                {% for k, v in dist.params.items() %}
+                                    <span class="badge bg-secondary me-1">{{ k }} = {{ "{:.4f}".format(v) if v is number else v }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-danger small">{{ dist.error or 'Incompatible' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "{:.4f}".format(dist.ks_stat) if dist.ks_stat is not none else '—' }}</td>
+                        <td>
+                            {% if dist.p_value is not none %}
+                                <strong class="{% if dist.p_value >= alpha %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.6f}".format(dist.p_value) }}
+                                </strong>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.valid and dist.p_value is not none %}
+                                {% if dist.p_value >= alpha %}
+                                    <span class="badge bg-success">No se rechaza H₀</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Se rechaza H₀</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">No evaluable</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.valid %}
+                                <button class="btn btn-sm {% if dist.name == selected_dist %}btn-info text-dark fw-bold{% else %}btn-outline-info{% endif %}" onclick="selectContinuousDistribution('{{ dist.name }}')">
+                                    {% if dist.name == selected_dist %}✓ Seleccionada{% else %}Seleccionar{% endif %}
+                                </button>
+                            {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>No viable</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pruebas de Normalidad y Gráfico Q-Q Plot -->
+<div class="card mb-4" style="border-left: 4px solid var(--success);">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0 text-success">Módulo de Pruebas de Normalidad</h5>
+    </div>
+    <div class="card-body">
+        <!-- Advertencia Metodológica Destacada -->
+        <div class="alert alert-warning border-warning mb-4">
+            <h6 class="fw-bold mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Advertencia Académica sobre Potencia en Muestras Grandes:
+            </h6>
+            <p class="mb-0 small">
+                Para tamaños muestrales muy elevados (N = {{ "{:,}".format(stats.n) }}), las pruebas de hipótesis formales (como Shapiro-Wilk o Anderson-Darling)
+                adquieren una potencia estadística prácticamente del 100%, tendiendo a rechazar H₀ incluso ante desviaciones numéricas insignificantes.
+                Por consiguiente, <strong>la decisión estadística debe sustentarse primordialmente en el análisis gráfico (Q-Q Plot y ajuste visual de la densidad).</strong>
+            </p>
+        </div>
+
+        <div class="row g-4 align-items-center">
+            <div class="col-md-6">
+                <h6 class="text-uppercase text-muted fw-bold mb-3">Resultados de Pruebas Formales:</h6>
+                
+                <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>Shapiro-Wilk:</strong>
+                        <span class="badge {% if normality_tests.shapiro.p_value and normality_tests.shapiro.p_value >= alpha %}bg-success{% else %}bg-danger{% endif %}">
+                            p = {{ "{:.6f}".format(normality_tests.shapiro.p_value) if normality_tests.shapiro.p_value is not none else 'N/A' }}
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1">Estadístico W = {{ "{:.4f}".format(normality_tests.shapiro.statistic) if normality_tests.shapiro.statistic is not none else '—' }}. {{ normality_tests.shapiro.note or '' }}</small>
+                </div>
+
+                <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>D'Agostino-Pearson (K²):</strong>
+                        <span class="badge {% if normality_tests.dagostino.p_value and normality_tests.dagostino.p_value >= alpha %}bg-success{% else %}bg-danger{% endif %}">
+                            p = {{ "{:.6f}".format(normality_tests.dagostino.p_value) if normality_tests.dagostino.p_value is not none else 'N/A' }}
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1">Evalúa conjuntamente coeficientes de asimetría y curtosis.</small>
+                </div>
+
+                <div class="p-3 rounded bg-dark border border-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>Anderson-Darling (A²):</strong>
+                        <span class="badge {% if normality_tests.anderson.reject_at_5pct %}bg-danger{% else %}bg-success{% endif %}">
+                            A² = {{ "{:.4f}".format(normality_tests.anderson.statistic) if normality_tests.anderson.statistic is not none else '—' }}
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        Valor crítico al 5%: {{ normality_tests.anderson.crit_val_5pct or '—' }}.
+                        {% if normality_tests.anderson.reject_at_5pct %}
+                            Estadístico supera el valor crítico (se rechaza normalidad en las colas).
+                        {% else %}
+                            Estadístico no supera el valor crítico.
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card bg-dark border border-secondary">
+                    <div class="card-header bg-transparent py-2">
+                        <h6 class="mb-0 text-light">Gráfico Q-Q (Cuantil-Cuantil Normal)</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="qqChart" style="height: 320px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const distResults = {{ dist_results|tojson }};
+const selectedDistName = "{{ selected_dist }}";
+
+async function renderContinuousCharts() {
+    try {
+        // 1. Cargar histograma y KDE
+        const kdeResp = await fetch('/api/continuous/kde');
+        const kdeData = await kdeResp.json();
+        
+        // Histograma + KDE
+        Plotly.newPlot('histKdeChart', [
+            {
+                x: kdeData.x,
+                y: kdeData.y,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Densidad Kernel (KDE)',
+                line: { color: '#06B6D4', width: 2.5 }
+            }
+        ], {
+            ...plotlyDarkLayout,
+            xaxis: { title: 'Valor de la Variable', gridcolor: '#2A3856' },
+            yaxis: { title: 'Densidad Estimada', gridcolor: '#2A3856' },
+            margin: { t: 20, r: 20, l: 50, b: 40 }
+        });
+
+        // 2. Boxplot
+        const sampleResp = await fetch('/api/dataset/head?n=1500');
+        const sampleRows = await sampleResp.json();
+        const colName = "{{ column }}";
+        const boxVals = sampleRows.map(r => r[colName]).filter(v => v !== null && v !== undefined);
+
+        Plotly.newPlot('boxplotChart', [{
+            y: boxVals,
+            type: 'box',
+            name: colName,
+            marker: { color: '#3B82F6' },
+            boxpoints: 'outliers'
+        }], {
+            ...plotlyDarkLayout,
+            yaxis: { title: 'Escala de la Variable', gridcolor: '#2A3856' },
+            margin: { t: 20, r: 20, l: 50, b: 40 }
+        });
+
+        // 3. ECDF
+        const ecdfResp = await fetch('/api/continuous/ecdf');
+        const ecdfData = await ecdfResp.json();
+        Plotly.newPlot('ecdfChart', [{
+            x: ecdfData.x,
+            y: ecdfData.y,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'ECDF F(x)',
+            line: { color: '#10B981', width: 2 }
+        }], {
+            ...plotlyDarkLayout,
+            xaxis: { title: 'Valor (x)', gridcolor: '#2A3856' },
+            yaxis: { title: 'Probabilidad Acumulada F(x)', gridcolor: '#2A3856' },
+            margin: { t: 20, r: 20, l: 50, b: 40 }
+        });
+
+        // 4. Superposición: Curva ajustada teórica seleccionada
+        const currentDist = distResults.find(d => d.name === selectedDistName && d.valid) || distResults.find(d => d.valid);
+        const overlayTraces = [];
+        
+        if (kdeData.x && kdeData.x.length > 0) {
+            overlayTraces.push({
+                x: kdeData.x,
+                y: kdeData.y,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Densidad Empírica',
+                line: { color: '#64748B', width: 1.5, dash: 'dot' }
+            });
+        }
+
+        if (currentDist && currentDist.curve_x && currentDist.curve_x.length > 0) {
+            overlayTraces.push({
+                x: currentDist.curve_x,
+                y: currentDist.curve_y,
+                type: 'scatter',
+                mode: 'lines',
+                name: `PDF Ajustada (${currentDist.name})`,
+                line: { color: '#F59E0B', width: 3 }
+            });
+        }
+
+        Plotly.newPlot('overlayFitChart', overlayTraces, {
+            ...plotlyDarkLayout,
+            xaxis: { title: 'Escala Continua', gridcolor: '#2A3856' },
+            yaxis: { title: 'Densidad Teórica f(x)', gridcolor: '#2A3856' },
+            legend: { orientation: 'h', y: 1.1 },
+            margin: { t: 30, r: 20, l: 50, b: 40 }
+        });
+
+        // 5. Q-Q Plot
+        const qqResp = await fetch('/api/continuous/qq');
+        const qqData = await qqResp.json();
+        Plotly.newPlot('qqChart', [
+            {
+                x: qqData.theoretical,
+                y: qqData.sample,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Cuantiles Muestrales',
+                marker: { color: '#06B6D4', size: 5 }
+            },
+            {
+                x: qqData.line_x,
+                y: qqData.line_y,
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Línea de Normalidad (y=x)',
+                line: { color: '#EF4444', width: 2, dash: 'dash' }
+            }
+        ], {
+            ...plotlyDarkLayout,
+            xaxis: { title: 'Cuantiles Teóricos Normales', gridcolor: '#2A3856' },
+            yaxis: { title: 'Cuantiles Muestrales Estandarizados', gridcolor: '#2A3856' },
+            legend: { orientation: 'h', y: 1.15 },
+            margin: { t: 30, r: 20, l: 50, b: 40 }
+        });
+
+    } catch (e) {
+        console.error('Error renderizando gráficos continuos:', e);
+    }
+}
+
+async function selectContinuousDistribution(distName) {
+    try {
+        const resp = await fetch('/api/continuous/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ distribution: distName })
+        });
+        const res = await resp.json();
+        if (res.success) {
+            showNotification(`Distribución continua '${distName}' seleccionada para la simulación.`, 'success');
+            setTimeout(() => window.location.reload(), 500);
+        }
+    } catch (e) {
+        showNotification('Error al seleccionar: ' + e.message, 'danger');
+    }
+}
+
+async function updateAlpha() {
+    const alphaVal = document.getElementById('alphaSelect').value;
+    try {
+        await fetch('/api/config/alpha', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alpha: alphaVal })
+        });
+        window.location.reload();
+    } catch (e) {
+        showNotification('Error actualizando nivel de significancia', 'danger');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderContinuousCharts);
+</script>
+{% endblock %}

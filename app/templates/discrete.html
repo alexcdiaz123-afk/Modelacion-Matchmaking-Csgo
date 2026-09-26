@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Variable Aleatoria Discreta — CS:GO Matchmaking{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Variable Aleatoria Discreta</h1>
+        <p class="page-subtitle">Modelación probabilística y pruebas de bondad de ajuste sobre <code class="text-warning fs-5">{{ column }}</code></p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small fw-bold mb-0">Nivel de Significancia (α):</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary w-auto" id="alphaSelect" onchange="updateAlpha()">
+            <option value="0.01" {% if alpha == 0.01 %}selected{% endif %}>α = 0.01 (99% confianza)</option>
+            <option value="0.05" {% if alpha == 0.05 %}selected{% endif %}>α = 0.05 (95% confianza)</option>
+            <option value="0.10" {% if alpha == 0.10 %}selected{% endif %}>α = 0.10 (90% confianza)</option>
+        </select>
+    </div>
+</div>
+
+<!-- Estadísticas Descriptivas de la Variable Discreta -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:,}".format(stats.n) }}</div>
+        <div class="stat-label">Observaciones (N)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.0f}".format(stats.min) }}</div>
+        <div class="stat-label">Mínimo</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.0f}".format(stats.max) }}</div>
+        <div class="stat-label">Máximo</div>
+    </div>
+    <div class="stat-card accent">
+        <div class="stat-value">{{ "{:.4f}".format(stats.mean) }}</div>
+        <div class="stat-label">Media Muestral (x̄)</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-value">{{ "{:.4f}".format(stats.median) }}</div>
+        <div class="stat-label">Mediana</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-value">{{ "{:.4f}".format(stats.var) }}</div>
+        <div class="stat-label">Varianza Muestral (s²)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ "{:.4f}".format(stats.std) }}</div>
+        <div class="stat-label">Desv. Estándar (s)</div>
+    </div>
+</div>
+
+<!-- Diagnóstico de Dispersión Académica -->
+<div class="card mb-4" style="border-left: 4px solid var(--accent);">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h6 class="text-uppercase text-muted fw-bold mb-1">Diagnóstico de Dispersión Teórica:</h6>
+                <p class="mb-0 text-light">
+                    Relación Varianza / Media: <strong class="text-warning">{{ "{:.4f}".format(stats.var / stats.mean if stats.mean else 1) }}</strong>
+                    {% if stats.var > stats.mean %}
+                        — <span class="badge bg-danger">Sobredispersión (Var > Media)</span>: Los datos exhiben mayor variabilidad que la supuesta por Poisson. La distribución <em>Binomial Negativa</em> es idónea para este comportamiento.
+                    {% elif stats.var < stats.mean %}
+                        — <span class="badge bg-info text-dark">Subdispersión (Var < Media)</span>: Típico de procesos con cota superior finita, donde la distribución <em>Binomial</em> es matemáticamente adecuada.
+                    {% else %}
+                        — <span class="badge bg-success">Equidispersión (Var ≈ Media)</span>: Condición ideal del proceso de <em>Poisson</em>.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos de Frecuencias y Distribución -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Gráfico de Barras de Frecuencias</h5>
+                <span class="badge bg-secondary">Conteo Real</span>
+            </div>
+            <div class="card-body">
+                <div id="barChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Histograma Discreto Relativo</h5>
+                <span class="badge bg-secondary">Masa de Probabilidad P(X=k)</span>
+            </div>
+            <div class="card-body">
+                <div id="histDiscreteChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico Comparativo: Frecuencia Observada vs Teórica Ajustada -->
+<div class="card mb-4">
+    <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Comparación: Datos Reales vs Distribución Teórica Ajustada</h5>
+        <span class="badge bg-warning text-dark">Superposición Empírica vs Esperada</span>
+    </div>
+    <div class="card-body">
+        <div id="fitComparisonChart" style="height: 400px;"></div>
+    </div>
+</div>
+
+<!-- Tabla de Frecuencias -->
+<div class="card mb-4">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0">Tabla de Distribución de Frecuencias</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 360px;">
+            <table class="table table-dark table-hover table-striped mb-0 text-center">
+                <thead class="table-primary text-uppercase small sticky-top">
+                    <tr>
+                        <th>Valor (k)</th>
+                        <th>Frecuencia Absoluta (Oi)</th>
+                        <th>Frecuencia Relativa (fi)</th>
+                        <th>Porcentaje (%)</th>
+                        <th>Porcentaje Acumulado (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in freq_table %}
+                    <tr>
+                        <td class="fw-bold text-light">{{ row.value }}</td>
+                        <td>{{ "{:,}".format(row.frequency) }}</td>
+                        <td>{{ "{:.6f}".format(row.relative_freq) }}</td>
+                        <td>{{ "{:.2f}".format(row.percentage) }}%</td>
+                        <td>{{ "{:.2f}".format(row.cum_percentage) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Contraste de Hipótesis y Bondad de Ajuste -->
+<div class="card mb-4" style="border-top: 3px solid var(--accent);">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0">Ajuste de Distribuciones Candidatas y Prueba Chi-cuadrado (χ²)</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-dark border-secondary mb-3">
+            <h6 class="text-warning mb-1">Formulación de Hipótesis Estadísticas:</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>H₀ (Hipótesis Nula):</strong> Los datos de la variable <code>{{ column }}</code> son compatibles con la distribución teórica postulada.
+                </div>
+                <div class="col-md-6">
+                    <strong>H₁ (Hipótesis Alterna):</strong> Los datos de la variable <code>{{ column }}</code> no son compatibles con la distribución teórica postulada.
+                </div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Regla de Decisión a nivel α = {{ alpha }}: Se rechaza H₀ si el p-valor &lt; {{ alpha }}. Si p-valor ≥ {{ alpha }}, <strong>no se rechaza H₀</strong>.
+                <em>(Nota académica: no rechazar H₀ no demuestra que el modelo sea 'verdadero', sino que no existe evidencia suficiente para descartarlo).</em>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-bordered mb-0 align-middle">
+                <thead class="table-primary text-uppercase small">
+                    <tr>
+                        <th>Distribución</th>
+                        <th>Parámetros Estimados</th>
+                        <th>Estadístico χ²</th>
+                        <th>Grados Libertad</th>
+                        <th>p-valor</th>
+                        <th>Resultado Formal</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dist in dist_results %}
+                    <tr class="{% if dist.name == selected_dist %}table-active border-warning{% endif %}">
+                        <td>
+                            <strong class="text-light">{{ dist.name }}</strong>
+                            <div class="small text-muted">{{ dist.description }}</div>
+                        </td>
+                        <td>
+                            {% if dist.valid %}
+                                {% for k, v in dist.params.items() %}
+                                    <span class="badge bg-secondary me-1">{{ k }} = {{ "{:.4f}".format(v) if v is number else v }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-danger small">{{ dist.error or 'Incompatible' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "{:.4f}".format(dist.chi2_stat) if dist.chi2_stat is not none else '—' }}</td>
+                        <td>{{ dist.df if dist.df is not none else '—' }}</td>
+                        <td>
+                            {% if dist.p_value is not none %}
+                                <strong class="{% if dist.p_value >= alpha %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.6f}".format(dist.p_value) }}
+                                </strong>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.valid and dist.p_value is not none %}
+                                {% if dist.p_value >= alpha %}
+                                    <span class="badge bg-success">No se rechaza H₀</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Se rechaza H₀</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">No evaluable</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.valid %}
+                                <button class="btn btn-sm {% if dist.name == selected_dist %}btn-warning text-dark fw-bold{% else %}btn-outline-warning{% endif %}" onclick="selectDiscreteDistribution('{{ dist.name }}')">
+                                    {% if dist.name == selected_dist %}✓ Seleccionada{% else %}Seleccionar{% endif %}
+                                </button>
+                            {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>No viable</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const freqData = {{ freq_table|tojson }};
+const distResults = {{ dist_results|tojson }};
+const selectedDistName = "{{ selected_dist }}";
+
+function renderCharts() {
+    const xVals = freqData.map(d => d.value);
+    const yFreq = freqData.map(d => d.frequency);
+    const yPct = freqData.map(d => d.relative_freq);
+
+    // 1. Gráfico de Barras
+    Plotly.newPlot('barChart', [{
+        x: xVals,
+        y: yFreq,
+        type: 'bar',
+        marker: {
+            color: '#F59E0B',
+            line: { color: '#D97706', width: 1 }
+        },
+        name: 'Frecuencia Absoluta'
+    }], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Valor (k)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Frecuencia Observada (Oi)', gridcolor: '#2A3856' },
+        margin: { t: 20, r: 20, l: 50, b: 40 }
+    });
+
+    // 2. Histograma Discreto Relativo
+    Plotly.newPlot('histDiscreteChart', [{
+        x: xVals,
+        y: yPct,
+        type: 'bar',
+        marker: {
+            color: '#06B6D4',
+            line: { color: '#0891B2', width: 1 }
+        },
+        name: 'Frecuencia Relativa fi'
+    }], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Valor (k)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Probabilidad Empírica P(X=k)', gridcolor: '#2A3856' },
+        margin: { t: 20, r: 20, l: 50, b: 40 }
+    });
+
+    // 3. Superposición: Observado vs Esperado de la distribución seleccionada
+    const currentDist = distResults.find(d => d.name === selectedDistName && d.valid) || distResults.find(d => d.valid);
+    
+    const traces = [{
+        x: xVals,
+        y: yFreq,
+        type: 'bar',
+        name: 'Frecuencia Observada',
+        opacity: 0.65,
+        marker: { color: '#3B82F6' }
+    }];
+
+    if (currentDist && currentDist.expected_freq && currentDist.expected_freq.length > 0) {
+        traces.push({
+            x: xVals,
+            y: currentDist.expected_freq,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: `Ajuste Teórico (${currentDist.name})`,
+            line: { color: '#EF4444', width: 3, dash: 'dot' },
+            marker: { size: 7, color: '#EF4444' }
+        });
+    }
+
+    Plotly.newPlot('fitComparisonChart', traces, {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Valor de la Variable (k)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Número de Observaciones', gridcolor: '#2A3856' },
+        legend: { orientation: 'h', y: 1.1 },
+        margin: { t: 30, r: 20, l: 60, b: 40 },
+        barmode: 'overlay'
+    });
+}
+
+async function selectDiscreteDistribution(distName) {
+    try {
+        const resp = await fetch('/api/discrete/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ distribution: distName })
+        });
+        const res = await resp.json();
+        if (res.success) {
+            showNotification(`Distribución '${distName}' seleccionada para el modelo.`, 'success');
+            setTimeout(() => window.location.reload(), 500);
+        }
+    } catch (e) {
+        showNotification('Error al seleccionar: ' + e.message, 'danger');
+    }
+}
+
+async function updateAlpha() {
+    const alphaVal = document.getElementById('alphaSelect').value;
+    try {
+        await fetch('/api/config/alpha', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alpha: alphaVal })
+        });
+        window.location.reload();
+    } catch (e) {
+        showNotification('Error actualizando nivel de significancia', 'danger');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderCharts);
+</script>
+{% endblock %}

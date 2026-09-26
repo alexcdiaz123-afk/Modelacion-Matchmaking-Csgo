@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Distribuciones Seleccionadas — CS:GO Matchmaking{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Distribuciones Seleccionadas</h1>
+        <p class="page-subtitle">Síntesis de modelos teóricos, parámetros estimados y justificación académica para la simulación</p>
+    </div>
+    <div>
+        <a href="{{ url_for('simulation_page') }}" class="btn btn-primary">
+            Proceder a Simulación
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ms-1"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- VARIABLE DISCRETA SELECCIONADA -->
+    <div class="col-md-6">
+        <div class="card h-100" style="border-top: 4px solid var(--accent);">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-warning">Variable Aleatoria Discreta</h5>
+                <span class="badge bg-warning text-dark">{{ discrete_selected or 'No seleccionada' }}</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="text-muted small text-uppercase fw-bold d-block">Variable Empírica:</span>
+                    <strong class="fs-5 text-light">{{ discrete_col or '—' }}</strong>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted small text-uppercase fw-bold d-block">Distribución Teórica Seleccionada:</span>
+                    <h4 class="text-warning mb-0">{{ discrete_selected or 'Pendiente' }}</h4>
+                </div>
+
+                <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                    <span class="text-muted small text-uppercase fw-bold d-block mb-1">Parámetros Estimados:</span>
+                    {% set d_item = None %}
+                    {% if discrete_results %}
+                        {% for r in discrete_results %}
+                            {% if r.name == discrete_selected %}
+                                {% set d_item = r %}
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for k, v in r.params.items() %}
+                                        <span class="badge bg-secondary p-2 fs-6">{{ k }} = {{ "{:.4f}".format(v) if v is number else v }}</span>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-2 small text-muted">
+                                    Estadístico χ² = {{ "{:.4f}".format(r.chi2_stat) if r.chi2_stat is not none else '—' }} | 
+                                    p-valor = {{ "{:.6f}".format(r.p_value) if r.p_value is not none else '—' }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="card bg-dark border border-secondary mb-3">
+                    <div class="card-header bg-transparent py-2">
+                        <span class="text-muted small text-uppercase fw-bold">Justificación Académica del Modelo:</span>
+                    </div>
+                    <div class="card-body py-2">
+                        <p class="small text-light mb-0">
+                            La variable <strong>'{{ discrete_col }}'</strong> describe estados discretos numerables dentro del entorno de CS:GO
+                            (tales como rangos de destreza competitiva o conteo de rondas). La distribución <strong>{{ discrete_selected }}</strong>
+                            fue adoptada considerando:
+                        </p>
+                        <ul class="small text-muted mt-2 mb-0 ps-3">
+                            <li><strong>Criterio de dispersión:</strong> La relación empírica varianza/media concuerda con las propiedades teóricas de la familia postulada.</li>
+                            <li><strong>Consistencia gráfica:</strong> Las probabilidades esperadas P(X=k) se alinean con los pesos de masa del histograma observado.</li>
+                            <li><strong>Relevancia en Matchmaking:</strong> Proporciona un marco matemáticamente consistente para muestrear jugadores con niveles de habilidad representativos de la comunidad de CS:GO.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('discrete_page') }}" class="btn btn-outline-warning btn-sm w-100">
+                    Cambiar Distribución Discreta
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- VARIABLE CONTINUA SELECCIONADA -->
+    <div class="col-md-6">
+        <div class="card h-100" style="border-top: 4px solid var(--blue);">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-info">Variable Aleatoria Continua</h5>
+                <span class="badge bg-info text-dark">{{ continuous_selected or 'No seleccionada' }}</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="text-muted small text-uppercase fw-bold d-block">Variable Empírica:</span>
+                    <strong class="fs-5 text-light">{{ continuous_col or '—' }}</strong>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted small text-uppercase fw-bold d-block">Distribución Teórica Seleccionada:</span>
+                    <h4 class="text-info mb-0">{{ continuous_selected or 'Pendiente' }}</h4>
+                </div>
+
+                <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                    <span class="text-muted small text-uppercase fw-bold d-block mb-1">Parámetros Estimados (MLE):</span>
+                    {% set c_item = None %}
+                    {% if continuous_results %}
+                        {% for r in continuous_results %}
+                            {% if r.name == continuous_selected %}
+                                {% set c_item = r %}
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for k, v in r.params.items() %}
+                                        <span class="badge bg-secondary p-2 fs-6">{{ k }} = {{ "{:.4f}".format(v) if v is number else v }}</span>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-2 small text-muted">
+                                    Estadístico KS (D) = {{ "{:.4f}".format(r.ks_stat) if r.ks_stat is not none else '—' }} | 
+                                    p-valor = {{ "{:.6f}".format(r.p_value) if r.p_value is not none else '—' }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="card bg-dark border border-secondary mb-3">
+                    <div class="card-header bg-transparent py-2">
+                        <span class="text-muted small text-uppercase fw-bold">Justificación Académica del Modelo:</span>
+                    </div>
+                    <div class="card-body py-2">
+                        <p class="small text-light mb-0">
+                            La variable <strong>'{{ continuous_col }}'</strong> cuantifica una magnitud continua (segundos transcurridos, duración de ronda o daño infligido).
+                            El modelo <strong>{{ continuous_selected }}</strong> fue elegido sobre las alternativas considerando:
+                        </p>
+                        <ul class="small text-muted mt-2 mb-0 ps-3">
+                            <li><strong>Ajuste de densidad:</strong> Minimización de la distancia suprimida en la prueba de Kolmogorov-Smirnov y superposición visual con el estimador KDE.</li>
+                            <li><strong>Soporte físico y temporal:</strong> Coherencia con el soporte positivo y asimetría natural del fenómeno de combate en CS:GO.</li>
+                            <li><strong>Integración en el Matchmaking:</strong> Esta variable servirá como métrica continua de rendimiento individual para ponderar la compatibilidad entre jugadores en la cola.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('continuous_page') }}" class="btn btn-outline-info btn-sm w-100">
+                    Cambiar Distribución Continua
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cuadro de Distinción Metodológica -->
+<div class="card mb-4" style="border-left: 4px solid var(--success);">
+    <div class="card-body">
+        <h6 class="text-uppercase text-muted fw-bold mb-2">Fundamentación de la Fase de Simulación</h6>
+        <p class="text-light mb-2">
+            Con los parámetros estimados a partir de los datos reales de CS:GO, la fase de simulación generará perfiles sintéticos de jugadores independientes:
+        </p>
+        <div class="row g-3 text-center">
+            <div class="col-md-4">
+                <div class="p-2 rounded bg-dark border border-secondary">
+                    <small class="text-warning d-block fw-bold">1. Atributo Discreto</small>
+                    <span class="text-muted small">Generado mediante {{ discrete_selected }} (Rango/Destreza)</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-2 rounded bg-dark border border-secondary">
+                    <small class="text-info d-block fw-bold">2. Atributo Continuo</small>
+                    <span class="text-muted small">Generado mediante {{ continuous_selected }} (Rendimiento/Tiempo)</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-2 rounded bg-dark border border-secondary">
+                    <small class="text-success d-block fw-bold">3. Cola de Matchmaking</small>
+                    <span class="text-muted small">Cálculo de compatibilidad d(p1, p2) &le; &theta;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

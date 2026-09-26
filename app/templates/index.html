@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Simulador de Matchmaking CS:GO{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <h1 class="page-title">Simulador Estadístico de Matchmaking</h1>
+    <p class="page-subtitle">Análisis probabilístico de datos reales de CS:GO</p>
+</div>
+
+<!-- Estadísticas principales -->
+<div class="stats-grid">
+    <div class="stat-card accent">
+        <div class="stat-value" id="statObservations">—</div>
+        <div class="stat-label">Observaciones</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-value" id="statVariables">—</div>
+        <div class="stat-label">Variables</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-value" id="statDistributions">6</div>
+        <div class="stat-label">Distribuciones</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="statSimulation">10,000</div>
+        <div class="stat-label">Simulación</div>
+    </div>
+</div>
+
+<!-- Flujo del Matchmaking -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Flujo del Matchmaking</h5>
+    </div>
+    <div class="card-body">
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-step-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div class="flow-step-text">Jugador solicita partida</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-step-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="flow-step-text">Entrada a cola</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-step-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div class="flow-step-text">Búsqueda de compatibilidad</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-step-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="flow-step-text">Grupo completo</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-step-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="flow-step-text">Partida creada</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Objetivo Académico -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Objetivo Académico</h5>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-body); margin-bottom: 16px;">
+                    Identificar y modelar el comportamiento probabilístico de variables obtenidas de partidas reales de CS:GO.
+                </p>
+                <ul style="color: var(--text-secondary); padding-left: 20px;">
+                    <li>Variable aleatoria discreta</li>
+                    <li>Variable aleatoria continua</li>
+                    <li>Distribuciones de probabilidad</li>
+                    <li>Pruebas estadísticas</li>
+                    <li>Generación de variables aleatorias</li>
+                    <li>Simulación de matchmaking</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Fuente de Datos</h5>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-body); margin-bottom: 12px;">
+                    <strong>CS:GO Matchmaking Damage</strong>
+                </p>
+                <p style="color: var(--text-secondary); margin-bottom: 12px;">
+                    <strong>Fuente:</strong> Kaggle
+                </p>
+                <p style="color: var(--text-secondary);">
+                    Dataset utilizado para realizar el análisis estadístico y construir el modelo de simulación.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Distinción importante -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Distinción Importante</h5>
+    </div>
+    <div class="card-body">
+        <div class="distinction-grid">
+            <div class="distinction-box real">
+                <h6>Datos Reales</h6>
+                <p>Observaciones directas del dataset de CS:GO</p>
+            </div>
+            <div class="distinction-box estimated">
+                <h6>Parámetros Estimados</h6>
+                <p>Valores calculados a partir de los datos reales</p>
+            </div>
+            <div class="distinction-box simulated">
+                <h6>Datos Simulados</h6>
+                <p>Valores generados por el modelo probabilístico</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acceso al Marco Teórico -->
+<div class="card mb-4" style="background: linear-gradient(135deg, rgba(77, 163, 255, 0.12), rgba(21, 31, 53, 0.9)); border-color: rgba(77, 163, 255, 0.3);">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary">Nuevo Módulo</span>
+                <h5 class="mb-0 text-white">Marco Teórico y Ecuaciones Matemáticas</h5>
+            </div>
+            <p class="text-secondary mb-0 small">
+                Consulta los axiomas de Kolmogórov, deducciones por máxima verosimilitud (MLE), ecuaciones de \( \chi^2 \), Kolmogorov-Smirnov, algoritmos de generación pseudoaleatoria y formulación analítica del matchmaking.
+            </p>
+        </div>
+        <a href="{{ url_for('theory_page') }}" class="btn btn-primary d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+            Explorar Teoría y Ecuaciones
+        </a>
+    </div>
+</div>
+
+<!-- Navegación rápida -->
+<div class="card">
+    <div class="card-header">
+        <h5>Flujo de Trabajo</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <a href="{{ url_for('dataset_page') }}" class="quick-link">
+                    <div class="quick-link-card">
+                        <div class="quick-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                        </div>
+                        <h6>1. Explorar Dataset</h6>
+                        <p>Visualizar y entender los datos</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{{ url_for('cleaning_page') }}" class="quick-link">
+                    <div class="quick-link-card">
+                        <div class="quick-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        </div>
+                        <h6>2. Limpiar Datos</h6>
+                        <p>Preparar para el análisis</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{{ url_for('variables_page') }}" class="quick-link">
+                    <div class="quick-link-card">
+                        <div class="quick-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                        </div>
+                        <h6>3. Seleccionar Variables</h6>
+                        <p>Identificar discretas y continuas</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{{ url_for('matchmaking_page') }}" class="quick-link">
+                    <div class="quick-link-card">
+                        <div class="quick-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <h6>4. Simular Matchmaking</h6>
+                        <p>Aplicar el modelo</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cargar estadísticas del dataset
+async function loadStats() {
+    try {
+        const response = await fetch('/api/dataset/info');
+        const info = await response.json();
+        if (info.n_rows) {
+            document.getElementById('statObservations').textContent = info.n_rows.toLocaleString();
+        }
+        if (info.n_cols) {
+            document.getElementById('statVariables').textContent = info.n_cols;
+        }
+    } catch (err) {
+        console.error('Error loading stats:', err);
+    }
+}
+
+loadStats();
+</script>
+{% endblock %}

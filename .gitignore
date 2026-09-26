@@ -1,0 +1,53 @@
+# ============================================
+# Python & Bytecode
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ============================================
+# Virtual Environments
+# ============================================
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# ============================================
+# Datasets Grandes de Kaggle (> 50 MB)
+# (Descargables con download_dataset.py)
+# ============================================
+data/esea_*.csv
+data/mm_*.csv
+*.zip
+*.tar.gz
+*.parquet
+
+# Permitir dataset ligero de inicio y metadatos
+!data/dataset.csv
+!data/map_data.csv
+
+# ============================================
+# IDEs & Editores
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Logs, temporales y caché
+# ============================================
+*.log
+*.tmp
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/

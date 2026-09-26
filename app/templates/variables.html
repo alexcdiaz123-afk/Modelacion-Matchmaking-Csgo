@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Selección de Variables — CS:GO{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <h1 class="page-title">Selección de Variables Aleatorias</h1>
+    <p class="page-subtitle">Identificación de variables discretas y continuas</p>
+</div>
+
+<div class="alert alert-info">
+    <strong>Nota:</strong> No se asume que una columna es discreta únicamente porque pandas la clasifica como integer. 
+    Se analiza el significado de la variable y su cardinalidad.
+</div>
+
+<!-- Selección de variables -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card" style="border-color: var(--accent);">
+            <div class="card-header" style="background: var(--accent-light);">
+                <h5 style="color: var(--accent);">Variable Aleatoria Discreta</h5>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-muted); margin-bottom: 16px;">Valores enteros con cardinalidad limitada (contadores, categorías)</p>
+                <select class="form-select" id="discreteSelect">
+                    <option value="">-- Seleccionar variable discreta --</option>
+                    {% for stat in col_stats %}
+                    {% if stat.dtype in ['int64', 'int32', 'Int64'] or stat.n_unique <= 20 %}
+                    <option value="{{ stat.name }}" {% if discrete_col == stat.name %}selected{% endif %}>
+                        {{ stat.name }} ({{ stat.n_unique }} únicos)
+                    </option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                {% if discrete_candidates %}
+                <small style="color: var(--success); display: block; margin-top: 8px;">Sugerencias: {{ discrete_candidates|join(', ') }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card" style="border-color: var(--blue);">
+            <div class="card-header" style="background: var(--blue-light);">
+                <h5 style="color: var(--blue);">Variable Aleatoria Continua</h5>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-muted); margin-bottom: 16px;">Valores reales con alta cardinalidad (mediciones, proporciones)</p>
+                <select class="form-select" id="continuousSelect">
+                    <option value="">-- Seleccionar variable continua --</option>
+                    {% for stat in col_stats %}
+                    {% if stat.dtype in ['float64', 'float32'] or stat.n_unique > 100 %}
+                    <option value="{{ stat.name }}" {% if continuous_col == stat.name %}selected{% endif %}>
+                        {{ stat.name }} ({{ stat.n_unique }} únicos)
+                    </option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                {% if continuous_candidates %}
+                <small style="color: var(--success); display: block; margin-top: 8px;">Sugerencias: {{ continuous_candidates|join(', ') }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-primary mb-4" onclick="saveVariables()">Guardar Selección</button>
+
+<!-- Tabla de estadísticas por columna -->
+<div class="card">
+    <div class="card-header">
+        <h5>Estadísticas por Columna</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                        <th>Nulos</th>
+                        <th>% Nulos</th>
+                        <th>Únicos</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Media</th>
+                        <th>Std</th>
+                        <th>Clasificación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in col_stats %}
+                    <tr class="{% if stat.name in discrete_candidates %}table-success{% elif stat.name in continuous_candidates %}table-info{% endif %}">
+                        <td><strong>{{ stat.name }}</strong></td>
+                        <td>{{ stat.dtype }}</td>
+                        <td>{{ stat.n_null }}</td>
+                        <td>{{ stat.null_pct }}%</td>
+                        <td>{{ stat.n_unique }}</td>
+                        <td>{{ stat.get('min', 'N/A') }}</td>
+                        <td>{{ stat.get('max', 'N/A') }}</td>
+                        <td>{{ stat.get('mean', 'N/A') }}</td>
+                        <td>{{ stat.get('std', 'N/A') }}</td>
+                        <td>
+                            {% if stat.name in discrete_candidates %}
+                            <span class="badge badge-success">Discreta</span>
+                            {% elif stat.name in continuous_candidates %}
+                            <span class="badge badge-info">Continua</span>
+                            {% else %}
+                            <span class="badge" style="background: var(--bg-card-secondary); color: var(--text-muted);">--</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveVariables() {
+    const discrete = document.getElementById('discreteSelect').value;
+    const continuous = document.getElementById('continuousSelect').value;
+    
+    if (!discrete || !continuous) {
+        alert('Debe seleccionar ambas variables.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/variables/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discrete, continuous })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Variables guardadas correctamente.');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+</script>
+{% endblock %}

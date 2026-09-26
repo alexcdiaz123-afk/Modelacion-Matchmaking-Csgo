@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Simulador de Matchmaking — CS:GO Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Simulador de Matchmaking</h1>
+        <p class="page-subtitle">Simulación probabilística de cola estocástica, perfiles estadísticos y algoritmo de compatibilidad</p>
+    </div>
+    <div class="badge bg-dark border border-secondary p-2 text-warning fs-6">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Entorno de Simulación Académica
+    </div>
+</div>
+
+<!-- Cuadro aclaratorio académico de CS:GO -->
+<div class="alert alert-dark border-secondary mb-4">
+    <div class="d-flex align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning me-2 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+            <strong class="text-light">Fundamentación Académica:</strong> Las variables estadísticas ajustadas en los módulos anteriores 
+            (<strong>{{ discrete_selected }}</strong> para rango/destreza y <strong>{{ continuous_selected }}</strong> para rendimiento de combate) 
+            se utilizan como generadores de perfiles para los jugadores entrantes. 
+            <em>Este modelo es una simulación conceptual con fines pedagógicos y no representa el código propietario de Valve Corporation.</em>
+        </div>
+    </div>
+</div>
+
+<!-- Flujo Conceptual del Matchmaking -->
+<div class="card mb-4" style="border-top: 3px solid var(--accent);">
+    <div class="card-header bg-dark">
+        <h6 class="mb-0 text-muted small text-uppercase fw-bold">Mecanismo de la Cola Estocástica</h6>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 text-center">
+            <div class="p-2 rounded bg-dark border border-secondary flex-grow-1">
+                <div class="fw-bold text-warning mb-1">1. Solicitud de Partida</div>
+                <small class="text-muted">Jugador entra a la cola</small>
+            </div>
+            <span class="text-muted fw-bold">→</span>
+            <div class="p-2 rounded bg-dark border border-secondary flex-grow-1">
+                <div class="fw-bold text-info mb-1">2. Perfil Estadístico</div>
+                <small class="text-muted">Muestreo desde {{ discrete_selected }} y {{ continuous_selected }}</small>
+            </div>
+            <span class="text-muted fw-bold">→</span>
+            <div class="p-2 rounded bg-dark border border-secondary flex-grow-1">
+                <div class="fw-bold text-light mb-1">3. Cálculo de Distancia</div>
+                <small class="text-muted">d(p1, p2) &le; Umbral θ</small>
+            </div>
+            <span class="text-muted fw-bold">→</span>
+            <div class="p-2 rounded bg-dark border border-secondary flex-grow-1">
+                <div class="fw-bold text-success mb-1">4. Creación de Partida</div>
+                <small class="text-muted">Grupo completo de 10 jugadores</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Configuración de la Simulación -->
+<div class="card mb-4" style="border-left: 4px solid var(--blue);">
+    <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-info">Configuración de Parámetros de Matchmaking</h5>
+        <span class="badge bg-secondary">Modelado de Cola</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Jugadores por Partida</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="mmPlayersPerMatch" value="10" min="2" max="20">
+                <small class="text-muted">Estándar CS:GO: 10 (5 vs 5)</small>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Capacidad Máx. de Cola</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="mmMaxQueueSize" value="100" min="10" max="500">
+                <small class="text-muted">Límite antes de saturación</small>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Umbral de Compatibilidad (θ)</label>
+                <div class="input-group">
+                    <input type="number" class="form-control bg-dark text-light border-secondary" id="mmThreshold" value="0.20" min="0.05" max="0.90" step="0.05">
+                    <span class="input-group-text bg-secondary text-light">dist</span>
+                </div>
+                <small class="text-muted">Distancia máxima (ej. 0.20 = 80% afín)</small>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Total Jugadores a Simular</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="mmNPlayers" value="100" min="10" max="1000" step="10">
+                <small class="text-muted">Volumen de solicitudes en cola</small>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1 align-items-center">
+            <div class="col-md-3">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Semilla Aleatoria</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="mmSeed" value="42">
+            </div>
+            <div class="col-md-5 d-flex gap-2 align-items-end">
+                <button class="btn btn-primary fw-bold w-100 py-2" onclick="runBatchSimulation()" id="btnBatchSim">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Simular Cola Completa
+                </button>
+            </div>
+            <div class="col-md-4 d-flex gap-2 align-items-end">
+                <button class="btn btn-outline-warning w-100 py-2" onclick="toggleLiveAnimation()" id="btnLiveAnim">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                    Animación Paso a Paso
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner Dinámico de Evento: MATCH ENCONTRADO -->
+<div id="matchFoundBanner" class="alert alert-success border-success text-center py-3 mb-4" style="display: none; animation: pulse 1s infinite alternate;">
+    <h3 class="fw-bold mb-0 text-success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        ¡MATCH ENCONTRADO! <span id="bannerMatchCode">PARTIDA #001</span>
+    </h3>
+    <p class="mb-0 text-light small" id="bannerMatchDetail">10 jugadores compatibles emparejados con éxito.</p>
+</div>
+
+<!-- Visualizador Gráfico de la Cola de Espera en Vivo -->
+<div class="card mb-4" style="border-left: 4px solid var(--accent);">
+    <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Estado Visual de la Cola (En Espera)</h5>
+        <span class="badge bg-warning text-dark" id="queueBadgeCount">0 jugadores</span>
+    </div>
+    <div class="card-body">
+        <div id="queuePlayersContainer" class="d-flex flex-wrap gap-2 p-3 bg-dark rounded border border-secondary" style="min-height: 100px; max-height: 220px; overflow-y: auto;">
+            <div class="text-muted small w-100 text-center py-4">Haga clic en 'Simular Cola Completa' o 'Animación Paso a Paso' para ver la llegada de jugadores.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas y Resultados del Matchmaking -->
+<div id="mmResultsDashboard" style="display: none;">
+    <!-- Estadísticas Clave -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card">
+            <div class="stat-value" id="statMmTotal">0</div>
+            <div class="stat-label">Jugadores Procesados</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value text-success" id="statMmMatches">0</div>
+            <div class="stat-label">Partidas Creadas</div>
+        </div>
+        <div class="stat-card accent">
+            <div class="stat-value text-warning" id="statMmMatched">0</div>
+            <div class="stat-label">Emparejados Exitosos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statMmQueue">0</div>
+            <div class="stat-label">Remanentes en Cola</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-value text-info" id="statMmRate">0%</div>
+            <div class="stat-label">Tasa de Emparejamiento</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statMmAvgWait">0.0</div>
+            <div class="stat-label">Tiempo Espera Promedio</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-success" id="statMmCompat">0%</div>
+            <div class="stat-label">Compatibilidad Media</div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Rendimiento de la Cola -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark">
+                    <h6 class="mb-0 text-light">Evolución Temporal del Tamaño de la Cola</h6>
+                </div>
+                <div class="card-body">
+                    <div id="queueTimelineChart" style="height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark">
+                    <h6 class="mb-0 text-light">Distribución de Tiempos de Espera</h6>
+                </div>
+                <div class="card-body">
+                    <div id="waitTimeHistChart" style="height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Partidas Creadas -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Partidas Creadas por el Algoritmo</h5>
+            <span class="badge bg-secondary" id="matchesCountBadge">0 partidas</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 350px;">
+                <table class="table table-dark table-hover table-striped mb-0 text-center align-middle" id="matchesDetailTable">
+                    <thead class="table-primary text-uppercase small sticky-top">
+                        <tr>
+                            <th>Código Partida</th>
+                            <th>Jugadores</th>
+                            <th>Tiempo Creación</th>
+                            <th>Rango Promedio</th>
+                            <th>Rendimiento Promedio</th>
+                            <th>Compatibilidad Grupo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchesDetailTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let liveInterval = null;
+let liveSimulatorState = null;
+
+async function runBatchSimulation() {
+    stopLiveAnimation();
+    
+    const config = {
+        players_per_match: parseInt(document.getElementById('mmPlayersPerMatch').value),
+        max_queue_size: parseInt(document.getElementById('mmMaxQueueSize').value),
+        compatibility_threshold: parseFloat(document.getElementById('mmThreshold').value),
+        n_players: parseInt(document.getElementById('mmNPlayers').value),
+        seed: parseInt(document.getElementById('mmSeed').value)
+    };
+
+    const btn = document.getElementById('btnBatchSim');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Simulando...';
+
+    try {
+        const resp = await fetch('/api/matchmaking/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
+        btn.disabled = false;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polygon points="5 3 19 12 5 21 5 3"/></svg> Simular Cola Completa';
+
+        if (data.success && data.results) {
+            renderSimulationDashboard(data.results);
+            showNotification(`Simulación completada: ${data.results.matches_created} partidas creadas con éxito.`, 'success');
+        } else {
+            showNotification('Error en la simulación: ' + data.error, 'danger');
+        }
+    } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Simular Cola Completa';
+        showNotification('Error de conexión: ' + e.message, 'danger');
+    }
+}
+
+function renderSimulationDashboard(res) {
+    document.getElementById('mmResultsDashboard').style.display = 'block';
+
+    // Métricas clave
+    document.getElementById('statMmTotal').textContent = res.total_players.toLocaleString();
+    document.getElementById('statMmMatches').textContent = res.matches_created.toLocaleString();
+    document.getElementById('statMmMatched').textContent = res.players_matched.toLocaleString();
+    document.getElementById('statMmQueue').textContent = res.players_in_queue.toLocaleString();
+    document.getElementById('statMmRate').textContent = `${res.match_rate.toFixed(1)}%`;
+    document.getElementById('statMmAvgWait').textContent = res.avg_wait_time.toFixed(2);
+    document.getElementById('statMmCompat').textContent = `${res.avg_compatibility.toFixed(1)}%`;
+
+    // Visualizador de jugadores en cola
+    const queueDiv = document.getElementById('queuePlayersContainer');
+    document.getElementById('queueBadgeCount').textContent = `${res.queued_players.length} jugadores en espera`;
+    
+    if (res.queued_players.length > 0) {
+        queueDiv.innerHTML = res.queued_players.map(p => `
+            <div class="px-2 py-1 rounded bg-dark border border-warning d-flex align-items-center gap-1 text-nowrap">
+                <span class="badge bg-warning text-dark">Rango ${p.skill_rank}</span>
+                <span class="text-light small">${p.name}</span>
+                <small class="text-muted">(${p.combat_stat})</small>
+            </div>
+        `).join('');
+    } else {
+        queueDiv.innerHTML = '<div class="text-success small w-100 text-center py-4">¡Cola vacía! Todos los jugadores fueron emparejados en partidas.</div>';
+    }
+
+    // Tabla de Partidas
+    const tbody = document.getElementById('matchesDetailTableBody');
+    document.getElementById('matchesCountBadge').textContent = `${res.matches.length} partidas`;
+    
+    tbody.innerHTML = res.matches.map(m => `
+        <tr>
+            <td class="fw-bold text-warning">${m.match_code}</td>
+            <td><span class="badge bg-secondary">${m.n_players} jugadores</span></td>
+            <td>${m.creation_time.toFixed(1)}s</td>
+            <td>${m.avg_rank.toFixed(2)}</td>
+            <td>${m.avg_combat.toFixed(2)}</td>
+            <td><span class="badge bg-success">${m.avg_compatibility}%</span></td>
+        </tr>
+    `).join('');
+
+    // Gráfico de Línea de Tiempo del tamaño de cola
+    Plotly.newPlot('queueTimelineChart', [{
+        x: res.time_points,
+        y: res.queue_sizes,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Jugadores en Cola',
+        line: { color: '#F59E0B', width: 2 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(245, 158, 11, 0.15)'
+    }], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Tiempo Simulado (segundos)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Tamaño de la Cola', gridcolor: '#2A3856' },
+        margin: { t: 20, r: 20, l: 50, b: 40 }
+    });
+
+    // Histograma de tiempos de espera
+    Plotly.newPlot('waitTimeHistChart', [{
+        x: res.wait_times,
+        type: 'histogram',
+        name: 'Tiempo de Espera',
+        marker: { color: '#06B6D4' }
+    }], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Tiempo de Espera (segundos)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Frecuencia de Jugadores', gridcolor: '#2A3856' },
+        margin: { t: 20, r: 20, l: 50, b: 40 }
+    });
+}
+
+function toggleLiveAnimation() {
+    if (liveInterval) {
+        stopLiveAnimation();
+        showNotification('Animación paso a paso pausada.', 'info');
+    } else {
+        startLiveAnimation();
+    }
+}
+
+function startLiveAnimation() {
+    const btn = document.getElementById('btnLiveAnim');
+    btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-danger"></span> Pausar Animación';
+    btn.className = 'btn btn-outline-danger w-100 py-2';
+    
+    // Iniciar simulación por pasos
+    runBatchSimulation();
+}
+
+function stopLiveAnimation() {
+    if (liveInterval) {
+        clearInterval(liveInterval);
+        liveInterval = null;
+    }
+    const btn = document.getElementById('btnLiveAnim');
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg> Animación Paso a Paso';
+    btn.className = 'btn btn-outline-warning w-100 py-2';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    runBatchSimulation();
+});
+</script>
+{% endblock %}

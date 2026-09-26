@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Generación y Comparación Real vs Simulada — CS:GO{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Generación de Variables Aleatorias</h1>
+        <p class="page-subtitle">Simulación computacional y contraste estadístico de dos muestras (Real vs Simulado)</p>
+    </div>
+    <div>
+        <a href="{{ url_for('matchmaking_page') }}" class="btn btn-primary">
+            Ir al Simulador de Matchmaking
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ms-1"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+    </div>
+</div>
+
+<!-- Panel de Configuración de la Simulación -->
+<div class="card mb-4" style="border-left: 4px solid var(--accent);">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0">Parámetros de Generación Pseudoaleatoria</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Cantidad de Observaciones (N)</label>
+                <div class="input-group">
+                    <input type="number" class="form-control bg-dark text-light border-secondary" id="simSizeInput" value="10000" min="1000" max="100000" step="1000">
+                    <span class="input-group-text bg-secondary text-light">obs</span>
+                </div>
+                <small class="text-muted">Por defecto: 10,000 observaciones</small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Semilla Pseudoaleatoria (Seed)</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="simSeedInput" value="42">
+                <small class="text-muted">Garantiza reproducibilidad experimental</small>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-warning text-dark fw-bold w-100 py-2" onclick="runGeneration()" id="btnGenerate">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Ejecutar Generación de Variables
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Indicador de Ejecución -->
+<div id="simLoading" class="card mb-4" style="display: none;">
+    <div class="card-body text-center py-5">
+        <div class="spinner-border text-warning mb-3" role="status"></div>
+        <h5 class="text-light">Generando variables y computando pruebas estadísticas...</h5>
+        <p class="text-muted">Aplicando algoritmos de transformación inversa y contraste de dos muestras.</p>
+    </div>
+</div>
+
+<!-- Resultados de Simulación -->
+<div id="simResultsContainer" style="display: none;">
+    <!-- ========================================== -->
+    <!-- VARIABLE DISCRETA: REAL VS SIMULADA -->
+    <!-- ========================================== -->
+    <div class="card mb-4" style="border-top: 3px solid var(--accent);">
+        <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-warning">1. Variable Discreta: Datos Reales vs Simulación</h5>
+            <span class="badge bg-warning text-dark" id="discreteBadge">—</span>
+        </div>
+        <div class="card-body">
+            <!-- Fundamentación del método de generación -->
+            <div class="p-3 mb-4 rounded bg-dark border border-secondary">
+                <h6 class="text-light mb-1">Fundamentación Matemática del Generador Discreto:</h6>
+                <p class="small text-muted mb-0" id="discreteMethodDesc">—</p>
+            </div>
+
+            <!-- Gráficos Discretos -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-dark border border-secondary">
+                        <div class="card-header bg-transparent py-2">
+                            <h6 class="mb-0 text-light small text-uppercase">Histograma Superpuesto (Real vs Simulado)</h6>
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="discreteHistChart" style="height: 320px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card bg-dark border border-secondary">
+                        <div class="card-header bg-transparent py-2">
+                            <h6 class="mb-0 text-light small text-uppercase">Frecuencias Relativas P(X=k)</h6>
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="discreteFreqChart" style="height: 320px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Comparativa y Pruebas de 2 Muestras -->
+            <div class="table-responsive mb-3">
+                <table class="table table-dark table-hover table-bordered mb-0 text-center" id="discreteStatsTable">
+                    <thead class="table-primary text-uppercase small">
+                        <tr>
+                            <th>Métrica Estadística</th>
+                            <th>Muestra Real (CS:GO)</th>
+                            <th>Muestra Simulada (Modelo)</th>
+                            <th>Diferencia Absoluta</th>
+                            <th>Error Relativo (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discreteStatsTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="p-3 rounded bg-dark border border-secondary" id="discreteTestBox">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <strong class="text-light">Prueba Kolmogorov-Smirnov (2 muestras):</strong>
+                        <span id="discreteKsText" class="ms-2">—</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong class="text-light">Prueba Mann-Whitney U:</strong>
+                        <span id="discreteMwText" class="ms-2">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VARIABLE CONTINUA: REAL VS SIMULADA -->
+    <!-- ========================================== -->
+    <div class="card mb-4" style="border-top: 3px solid var(--blue);">
+        <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-info">2. Variable Continua: Datos Reales vs Simulación</h5>
+            <span class="badge bg-info text-dark" id="continuousBadge">—</span>
+        </div>
+        <div class="card-body">
+            <!-- Fundamentación del método de generación -->
+            <div class="p-3 mb-4 rounded bg-dark border border-secondary">
+                <h6 class="text-light mb-1">Fundamentación Matemática del Generador Continuo:</h6>
+                <p class="small text-muted mb-0" id="continuousMethodDesc">—</p>
+            </div>
+
+            <!-- Gráficos Continuos -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-dark border border-secondary">
+                        <div class="card-header bg-transparent py-2">
+                            <h6 class="mb-0 text-light small text-uppercase">Curvas de Densidad Empírica (Real vs Simulado)</h6>
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="continuousDensityChart" style="height: 320px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card bg-dark border border-secondary">
+                        <div class="card-header bg-transparent py-2">
+                            <h6 class="mb-0 text-light small text-uppercase">Boxplot Comparativo (Real vs Simulado)</h6>
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="continuousBoxChart" style="height: 320px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Comparativa Continua -->
+            <div class="table-responsive mb-3">
+                <table class="table table-dark table-hover table-bordered mb-0 text-center" id="continuousStatsTable">
+                    <thead class="table-primary text-uppercase small">
+                        <tr>
+                            <th>Métrica Estadística</th>
+                            <th>Muestra Real (CS:GO)</th>
+                            <th>Muestra Simulada (Modelo)</th>
+                            <th>Diferencia Absoluta</th>
+                            <th>Error Relativo (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="continuousStatsTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="p-3 rounded bg-dark border border-secondary" id="continuousTestBox">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <strong class="text-light">Prueba Kolmogorov-Smirnov (2 muestras):</strong>
+                        <span id="continuousKsText" class="ms-2">—</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong class="text-light">Prueba Mann-Whitney U:</strong>
+                        <span id="continuousMwText" class="ms-2">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function runGeneration() {
+    const size = parseInt(document.getElementById('simSizeInput').value);
+    const seed = parseInt(document.getElementById('simSeedInput').value);
+    const btn = document.getElementById('btnGenerate');
+    
+    btn.disabled = true;
+    document.getElementById('simLoading').style.display = 'block';
+    document.getElementById('simResultsContainer').style.display = 'none';
+
+    try {
+        const resp = await fetch('/api/simulation/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ size, seed })
+        });
+        const data = await resp.json();
+        
+        document.getElementById('simLoading').style.display = 'none';
+        btn.disabled = false;
+        
+        if (data.success && data.results) {
+            document.getElementById('simResultsContainer').style.display = 'block';
+            if (data.results.discrete) renderDiscreteSim(data.results.discrete);
+            if (data.results.continuous) renderContinuousSim(data.results.continuous);
+            showNotification('Generación completada y contrastada con datos reales.', 'success');
+        } else {
+            showNotification('Error en la simulación: ' + (data.error || 'Error desconocido'), 'danger');
+        }
+    } catch (e) {
+        document.getElementById('simLoading').style.display = 'none';
+        btn.disabled = false;
+        showNotification('Error de conexión: ' + e.message, 'danger');
+    }
+}
+
+function renderDiscreteSim(d) {
+    document.getElementById('discreteBadge').textContent = `${d.distribution} (Columna: ${d.column})`;
+    document.getElementById('discreteMethodDesc').innerHTML = `<strong>Método:</strong> ${d.method.method}.<br>${d.method.description}`;
+
+    // Gráfico de histograma superpuesto
+    Plotly.newPlot('discreteHistChart', [
+        {
+            x: d.real_sample,
+            type: 'histogram',
+            name: 'Datos Reales',
+            opacity: 0.65,
+            marker: { color: '#3B82F6' }
+        },
+        {
+            x: d.simulated_sample,
+            type: 'histogram',
+            name: 'Datos Simulados',
+            opacity: 0.65,
+            marker: { color: '#F59E0B' }
+        }
+    ], {
+        ...plotlyDarkLayout,
+        barmode: 'overlay',
+        xaxis: { title: 'Valor Discreto (k)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Frecuencia de Muestra', gridcolor: '#2A3856' },
+        legend: { orientation: 'h', y: 1.15 },
+        margin: { t: 30, r: 20, l: 50, b: 40 }
+    });
+
+    // Gráfico de barras de frecuencia
+    const computeFreq = arr => {
+        const counts = {};
+        arr.forEach(x => { counts[x] = (counts[x] || 0) + 1; });
+        const keys = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+        return { keys, pcts: keys.map(k => counts[k] / arr.length) };
+    };
+    const rf = computeFreq(d.real_sample);
+    const sf = computeFreq(d.simulated_sample);
+
+    Plotly.newPlot('discreteFreqChart', [
+        {
+            x: rf.keys,
+            y: rf.pcts,
+            type: 'bar',
+            name: 'Real P(X=k)',
+            marker: { color: '#3B82F6' },
+            opacity: 0.7
+        },
+        {
+            x: sf.keys,
+            y: sf.pcts,
+            type: 'bar',
+            name: 'Simulado P(X=k)',
+            marker: { color: '#F59E0B' },
+            opacity: 0.7
+        }
+    ], {
+        ...plotlyDarkLayout,
+        barmode: 'group',
+        xaxis: { title: 'Categoría (k)', gridcolor: '#2A3856' },
+        yaxis: { title: 'Probabilidad Empírica', gridcolor: '#2A3856' },
+        legend: { orientation: 'h', y: 1.15 },
+        margin: { t: 30, r: 20, l: 50, b: 40 }
+    });
+
+    // Llenar tabla de estadísticas
+    fillStatsTable('discreteStatsTableBody', d.comparison.real_stats, d.comparison.simulated_stats);
+
+    // Pruebas estadísticas
+    const ks = d.comparison.ks_test;
+    const mw = d.comparison.mann_whitney;
+    document.getElementById('discreteKsText').innerHTML = ks.valid ? 
+        `<span class="badge ${ks.p_value >= 0.05 ? 'bg-success' : 'bg-warning text-dark'}">D = ${ks.statistic.toFixed(4)}, p = ${ks.p_value.toFixed(6)}</span>` : 'N/A';
+    document.getElementById('discreteMwText').innerHTML = mw.valid ? 
+        `<span class="badge ${mw.p_value >= 0.05 ? 'bg-success' : 'bg-warning text-dark'}">U = ${mw.statistic.toLocaleString()}, p = ${mw.p_value.toFixed(6)}</span>` : 'N/A';
+}
+
+function renderContinuousSim(c) {
+    document.getElementById('continuousBadge').textContent = `${c.distribution} (Columna: ${c.column})`;
+    document.getElementById('continuousMethodDesc').innerHTML = `<strong>Método:</strong> ${c.method.method}.<br>${c.method.description}`;
+
+    // Gráfico de densidad continua
+    Plotly.newPlot('continuousDensityChart', [
+        {
+            x: c.real_sample,
+            type: 'histogram',
+            histnorm: 'probability density',
+            name: 'Real (Densidad)',
+            opacity: 0.55,
+            marker: { color: '#3B82F6' }
+        },
+        {
+            x: c.simulated_sample,
+            type: 'histogram',
+            histnorm: 'probability density',
+            name: 'Simulada (Densidad)',
+            opacity: 0.55,
+            marker: { color: '#06B6D4' }
+        }
+    ], {
+        ...plotlyDarkLayout,
+        barmode: 'overlay',
+        xaxis: { title: 'Escala Continua', gridcolor: '#2A3856' },
+        yaxis: { title: 'Densidad f(x)', gridcolor: '#2A3856' },
+        legend: { orientation: 'h', y: 1.15 },
+        margin: { t: 30, r: 20, l: 50, b: 40 }
+    });
+
+    // Boxplot comparativo
+    Plotly.newPlot('continuousBoxChart', [
+        {
+            y: c.real_sample,
+            type: 'box',
+            name: 'Real (CS:GO)',
+            marker: { color: '#3B82F6' },
+            boxpoints: 'outliers'
+        },
+        {
+            y: c.simulated_sample,
+            type: 'box',
+            name: 'Simulado (Modelo)',
+            marker: { color: '#06B6D4' },
+            boxpoints: 'outliers'
+        }
+    ], {
+        ...plotlyDarkLayout,
+        yaxis: { title: 'Valores', gridcolor: '#2A3856' },
+        margin: { t: 20, r: 20, l: 50, b: 40 }
+    });
+
+    // Llenar tabla de estadísticas
+    fillStatsTable('continuousStatsTableBody', c.comparison.real_stats, c.comparison.simulated_stats);
+
+    // Pruebas estadísticas
+    const ks = c.comparison.ks_test;
+    const mw = c.comparison.mann_whitney;
+    document.getElementById('continuousKsText').innerHTML = ks.valid ? 
+        `<span class="badge ${ks.p_value >= 0.05 ? 'bg-success' : 'bg-warning text-dark'}">D = ${ks.statistic.toFixed(4)}, p = ${ks.p_value.toFixed(6)}</span>` : 'N/A';
+    document.getElementById('continuousMwText').innerHTML = mw.valid ? 
+        `<span class="badge ${mw.p_value >= 0.05 ? 'bg-success' : 'bg-warning text-dark'}">U = ${mw.statistic.toLocaleString()}, p = ${mw.p_value.toFixed(6)}</span>` : 'N/A';
+}
+
+function fillStatsTable(tbodyId, real, sim) {
+    const tbody = document.getElementById(tbodyId);
+    const metrics = [
+        { label: 'Tamaño de Muestra (N)', r: real.n, s: sim.n, isInt: true },
+        { label: 'Media Aritmética (x̄)', r: real.mean, s: sim.mean },
+        { label: 'Mediana (Q2)', r: real.median, s: sim.median },
+        { label: 'Desviación Estándar (s)', r: real.std, s: sim.std },
+        { label: 'Varianza (s²)', r: real.var, s: sim.var },
+        { label: 'Valor Mínimo', r: real.min, s: sim.min },
+        { label: 'Valor Máximo', r: real.max, s: sim.max },
+        { label: 'Percentil 25 (Q1)', r: real.percentiles?.p25, s: sim.percentiles?.p25 },
+        { label: 'Percentil 75 (Q3)', r: real.percentiles?.p75, s: sim.percentiles?.p75 },
+        { label: 'Percentil 95', r: real.percentiles?.p95, s: sim.percentiles?.p95 },
+    ];
+
+    tbody.innerHTML = metrics.map(m => {
+        const diff = Math.abs(m.r - m.s);
+        const relErr = m.r !== 0 ? (diff / Math.abs(m.r)) * 100 : 0.0;
+        const fmt = v => m.isInt ? v.toLocaleString() : (v !== undefined && v !== null ? v.toFixed(4) : '—');
+        
+        return `
+            <tr>
+                <td class="text-start fw-bold text-light ps-3">${m.label}</td>
+                <td>${fmt(m.r)}</td>
+                <td class="text-warning">${fmt(m.s)}</td>
+                <td>${m.isInt ? diff.toLocaleString() : diff.toFixed(4)}</td>
+                <td><span class="badge ${relErr < 5 ? 'bg-success' : (relErr < 15 ? 'bg-warning text-dark' : 'bg-danger')}">${relErr.toFixed(2)}%</span></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Iniciar simulación automática al cargar
+document.addEventListener('DOMContentLoaded', () => {
+    runGeneration();
+});
+</script>
+{% endblock %}

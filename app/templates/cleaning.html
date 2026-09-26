@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Limpieza de Datos — CS:GO Matchmaking{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Limpieza y Depuración de Datos</h1>
+        <p class="page-subtitle">Transformaciones controladas y reproducibles sobre una copia de trabajo del dataset</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('discrete_page') }}" class="btn btn-primary">
+            Continuar a Variable Discreta
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ms-1"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-dark border-secondary mb-4">
+    <div class="d-flex align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning me-2 flex-shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="text-light">
+            <strong>Principio de Integridad Académica:</strong> Los datos crudos originales nunca son modificados ni sobrescritos. 
+            Todas las operaciones se aplican de forma estricta sobre una copia en memoria (<code>clean_df</code>).
+        </span>
+    </div>
+</div>
+
+<!-- Resumen Comparativo: ANTES vs DESPUÉS -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100" style="border-top: 4px solid var(--warning);">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-warning">Estado Inicial (ANTES)</h5>
+                <span class="badge bg-warning text-dark">Datos Crudos</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-dark table-borderless mb-0">
+                    <tbody>
+                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-light text-end" id="beforeRows">{{ "{:,}".format(summary.before.rows) }}</td></tr>
+                        <tr><td class="text-muted">Total de Columnas:</td><td class="fw-bold text-light text-end" id="beforeCols">{{ summary.before.cols }}</td></tr>
+                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-light text-end" id="beforeNulls">{{ "{:,}".format(summary.before.nulls) }}</td></tr>
+                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-light text-end" id="beforeDuplicates">{{ "{:,}".format(summary.before.duplicates) }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100" style="border-top: 4px solid var(--success);">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-success">Estado Limpio (DESPUÉS)</h5>
+                <span class="badge bg-success">DataFrame Depurado</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-dark table-borderless mb-0">
+                    <tbody>
+                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-success text-end" id="afterRows">{{ "{:,}".format(summary.after.rows) }}</td></tr>
+                        <tr><td class="text-muted">Total de Columnas:</td><td class="fw-bold text-success text-end" id="afterCols">{{ summary.after.cols }}</td></tr>
+                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-success text-end" id="afterNulls">{{ "{:,}".format(summary.after.nulls) }}</td></tr>
+                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-success text-end" id="afterDuplicates">{{ "{:,}".format(summary.after.duplicates) }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulario de Operaciones de Limpieza -->
+<div class="card mb-4" style="border-left: 4px solid var(--blue);">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0 text-info">Configuración de Operaciones de Limpieza</h5>
+    </div>
+    <div class="card-body">
+        <form id="cleaningForm">
+            <div class="row g-4">
+                <!-- Columna Izquierda: Duplicados y Nulos -->
+                <div class="col-md-6">
+                    <h6 class="text-uppercase text-muted fw-bold small mb-3">1. Duplicados y Nulos</h6>
+                    
+                    <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="removeDuplicates" checked>
+                            <label class="form-check-label fw-bold text-light" for="removeDuplicates">
+                                Eliminar Filas Duplicadas
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">Descarta repeticiones exactas de registros de eventos en la muestra.</small>
+                    </div>
+
+                    <div class="p-3 rounded bg-dark border border-secondary">
+                        <label class="form-label text-light fw-bold mb-1">Tratamiento de Valores Faltantes (NaN):</label>
+                        <select class="form-select bg-dark text-light border-secondary mb-2" id="nullStrategy" onchange="onNullStrategyChange()">
+                            <option value="none">Conservar nulos (sin modificar)</option>
+                            <option value="drop" selected>Eliminar filas con valores nulos (Listwise Deletion)</option>
+                            <option value="mean">Imputar media muestral (solo numéricas)</option>
+                            <option value="median">Imputar mediana muestral (robusta a outliers)</option>
+                            <option value="constant">Imputar constante personalizada</option>
+                        </select>
+                        <div id="fillValueContainer" style="display: none;">
+                            <label class="form-label small text-muted">Constante de reemplazo:</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary" id="fillConstantValue" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Outliers y Rangos -->
+                <div class="col-md-6">
+                    <h6 class="text-uppercase text-muted fw-bold small mb-3">2. Depuración de Valores Inválidos y Extremos</h6>
+                    
+                    <div class="p-3 mb-3 rounded bg-dark border border-secondary">
+                        <label class="form-label text-light fw-bold mb-1">Filtrado de Outliers (Rango Intercuartil - IQR):</label>
+                        <div class="row g-2">
+                            <div class="col-7">
+                                <select class="form-select bg-dark text-light border-secondary" id="outlierColSelect">
+                                    <option value="">-- No aplicar filtro IQR --</option>
+                                    {% for c in columns %}
+                                    <option value="{{ c }}">{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary text-light small">x IQR</span>
+                                    <input type="number" class="form-control bg-dark text-light border-secondary" id="outlierIqrMultiplier" value="1.5" step="0.1" min="1.0" max="3.0">
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">Elimina observaciones fuera del intervalo [Q1 - k*IQR, Q3 + k*IQR].</small>
+                    </div>
+
+                    <div class="p-3 rounded bg-dark border border-secondary">
+                        <label class="form-label text-light fw-bold mb-1">Filtro de Rango Válido [Mín, Máx]:</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <select class="form-select bg-dark text-light border-secondary" id="rangeColSelect">
+                                    <option value="">-- Columna --</option>
+                                    {% for c in columns %}
+                                    <option value="{{ c }}">{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" class="form-control bg-dark text-light border-secondary" id="rangeMinInput" placeholder="Min">
+                            </div>
+                            <div class="col-3">
+                                <input type="number" class="form-control bg-dark text-light border-secondary" id="rangeMaxInput" placeholder="Max">
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">Descarta valores anómalos fuera de límites teóricos de la partida.</small>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-secondary my-4">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-danger" onclick="resetCleaning()" id="btnResetClean">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Restablecer Datos Originales
+                </button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold" id="btnApplyClean">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                    Aplicar Operaciones de Limpieza
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function onNullStrategyChange() {
+    const strat = document.getElementById('nullStrategy').value;
+    document.getElementById('fillValueContainer').style.display = (strat === 'constant') ? 'block' : 'none';
+}
+
+document.getElementById('cleaningForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnApplyClean');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando...';
+
+    const operations = [];
+
+    // 1. Duplicados
+    if (document.getElementById('removeDuplicates').checked) {
+        operations.push({ type: 'remove_duplicates' });
+    }
+
+    // 2. Nulos (incluyendo 'drop')
+    const nullStrat = document.getElementById('nullStrategy').value;
+    if (nullStrat && nullStrat !== 'none') {
+        const fillVal = parseFloat(document.getElementById('fillConstantValue').value) || 0;
+        operations.push({
+            type: 'handle_nulls',
+            strategy: nullStrat,
+            fill_value: fillVal
+        });
+    }
+
+    // 3. Outliers IQR
+    const outlierCol = document.getElementById('outlierColSelect').value;
+    if (outlierCol) {
+        const mult = parseFloat(document.getElementById('outlierIqrMultiplier').value) || 1.5;
+        operations.push({
+            type: 'filter_outliers',
+            column: outlierCol,
+            method: 'iqr',
+            threshold: mult
+        });
+    }
+
+    // 4. Rango de valores
+    const rangeCol = document.getElementById('rangeColSelect').value;
+    if (rangeCol) {
+        const minVal = document.getElementById('rangeMinInput').value;
+        const maxVal = document.getElementById('rangeMaxInput').value;
+        operations.push({
+            type: 'remove_invalid',
+            column: rangeCol,
+            min: minVal !== '' ? parseFloat(minVal) : null,
+            max: maxVal !== '' ? parseFloat(maxVal) : null
+        });
+    }
+
+    try {
+        const resp = await fetch('/api/cleaning/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ operations })
+        });
+        const res = await resp.json();
+        btn.disabled = false;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Aplicar Operaciones de Limpieza';
+
+        if (res.success && res.summary) {
+            const s = res.summary;
+            document.getElementById('afterRows').textContent = s.after.rows.toLocaleString();
+            document.getElementById('afterCols').textContent = s.after.cols;
+            document.getElementById('afterNulls').textContent = s.after.nulls.toLocaleString();
+            document.getElementById('afterDuplicates').textContent = s.after.duplicates.toLocaleString();
+            showNotification(`Limpieza completada. Se eliminaron ${s.rows_removed.toLocaleString()} filas.`, 'success');
+        } else {
+            showNotification('Error: ' + res.error, 'danger');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Aplicar Operaciones de Limpieza';
+        showNotification('Error de conexión: ' + err.message, 'danger');
+    }
+});
+
+async function resetCleaning() {
+    if (!confirm('¿Desea restablecer el DataFrame al estado original sin transformaciones?')) return;
+    try {
+        const resp = await fetch('/api/cleaning/reset', { method: 'POST' });
+        const res = await resp.json();
+        if (res.success) {
+            showNotification('Datos restablecidos al estado original.', 'info');
+            setTimeout(() => window.location.reload(), 500);
+        }
+    } catch (e) {
+        showNotification('Error al restablecer: ' + e.message, 'danger');
+    }
+}
+</script>
+{% endblock %}

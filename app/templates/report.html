@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Informe Académico — CS:GO Matchmaking Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .sidebar, .page-header, .no-print {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    .card {
+        border: 1px solid #ccc !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    .card-header {
+        background: #f0f0f0 !important;
+        color: #000000 !important;
+    }
+    pre, code {
+        color: #000 !important;
+        background: #f8f9fa !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
+    <div>
+        <h1 class="page-title">Informe Académico Completo</h1>
+        <p class="page-subtitle">Documentación integral de 20 secciones estructurada a partir de los resultados reales del análisis</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-warning" onclick="downloadMarkdown()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar Markdown (.md)
+        </button>
+        <button class="btn btn-outline-light" onclick="window.print()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir / Guardar PDF
+        </button>
+        <button class="btn btn-primary" onclick="loadReport()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Actualizar Informe
+        </button>
+    </div>
+</div>
+
+<!-- Contenedor del Informe -->
+<div id="reportLoading" class="card mb-4 no-print">
+    <div class="card-body text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5>Sintetizando las 20 secciones del informe académico...</h5>
+        <p class="text-muted">Compilando resultados descriptivos, pruebas de bondad de ajuste, parámetros y métricas de simulación.</p>
+    </div>
+</div>
+
+<div id="reportContainer" style="display: none;">
+    <!-- Encabezado del Documento Académico -->
+    <div class="card mb-4" style="border-top: 4px solid var(--accent);">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <span class="badge bg-warning text-dark px-2 py-1 mb-2 text-uppercase fw-bold">Reporte Técnico Universitario</span>
+                    <h2 class="text-light fw-bold mb-1" id="repTitle">—</h2>
+                    <p class="text-muted small mb-0">Probabilidad y Estadística Aplicada a Sistemas de Matchmaking Competitivo</p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">Fecha de Generación:</small>
+                    <strong class="text-warning" id="repDate">—</strong>
+                </div>
+            </div>
+            <hr class="border-secondary my-3">
+            <div class="row g-2 text-muted small">
+                <div class="col-md-3"><strong>Dataset:</strong> CS:GO Matchmaking Damage</div>
+                <div class="col-md-3"><strong>Variable Discreta:</strong> <span id="repMetaDiscrete" class="text-warning">—</span></div>
+                <div class="col-md-3"><strong>Variable Continua:</strong> <span id="repMetaContinuous" class="text-info">—</span></div>
+                <div class="col-md-3"><strong>Estructura:</strong> 20 Secciones Académicas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de las 20 Secciones -->
+    <div id="sectionsList" class="d-flex flex-column gap-3 mb-5"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadReport() {
+    document.getElementById('reportLoading').style.display = 'block';
+    document.getElementById('reportContainer').style.display = 'none';
+
+    try {
+        const resp = await fetch('/api/report/generate');
+        const data = await resp.json();
+        
+        document.getElementById('reportLoading').style.display = 'none';
+
+        if (data.success && data.report) {
+            document.getElementById('reportContainer').style.display = 'block';
+            renderReport(data.report);
+        } else {
+            showNotification('Error generando informe: ' + (data.error || 'Error desconocido'), 'danger');
+        }
+    } catch (e) {
+        document.getElementById('reportLoading').style.display = 'none';
+        showNotification('Error al cargar informe: ' + e.message, 'danger');
+    }
+}
+
+function renderReport(report) {
+    document.getElementById('repTitle').textContent = report.title;
+    document.getElementById('repDate').textContent = report.generated_at;
+    document.getElementById('repMetaDiscrete').textContent = `${report.discrete_col} (${report.discrete_selected || 'N/A'})`;
+    document.getElementById('repMetaContinuous').textContent = `${report.continuous_col} (${report.continuous_selected || 'N/A'})`;
+
+    const container = document.getElementById('sectionsList');
+    container.innerHTML = '';
+
+    report.sections.forEach(sec => {
+        const isHighlight = sec.num === 10 || sec.num === 15 || sec.num === 20;
+        const borderColor = sec.num === 20 ? 'border-success' : (isHighlight ? 'border-warning' : 'border-secondary');
+        
+        container.innerHTML += `
+            <div class="card ${borderColor}">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center py-2">
+                    <h5 class="mb-0 text-light fs-6 fw-bold">${sec.title}</h5>
+                    <span class="badge bg-secondary">Sección ${sec.num} de 20</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="text-light" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem;">${sec.content}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function downloadMarkdown() {
+    window.location.href = '/api/report/markdown';
+}
+
+document.addEventListener('DOMContentLoaded', loadReport);
+</script>
+{% endblock %}

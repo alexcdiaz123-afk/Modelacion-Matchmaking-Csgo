@@ -1,0 +1,1350 @@
+{% extends "base.html" %}
+
+{% block title %}Marco Teórico y Ecuaciones Matemáticas — CS:GO Matchmaking{% endblock %}
+
+{% block extra_css %}
+<style>
+.theory-toc-item {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+.theory-toc-item:hover, .theory-toc-item.active {
+    background: var(--bg-card-secondary);
+    color: var(--blue);
+}
+.math-proof-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px dashed #334155;
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin: 12px 0;
+}
+.math-proof-box h6 {
+    color: var(--blue);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+@media print {
+    .theory-tabs, .no-print {
+        display: none !important;
+    }
+    .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        page-break-after: always;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado de la página -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Fundamentos Teóricos y Modelación Matemática</h1>
+        <p class="page-subtitle">Formulación axiomática, funciones de probabilidad, estimación por máxima verosimilitud, pruebas de bondad de ajuste y modelación estocástica del matchmaking</p>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <button class="btn btn-outline-light" onclick="window.print()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir / Guardar PDF
+        </button>
+        <a href="{{ url_for('report_page') }}" class="btn btn-outline-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Ver Informe Académico
+        </a>
+    </div>
+</div>
+
+<!-- Resumen Metodológico Superior -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card accent">
+            <div class="stat-value">\( (\Omega, \mathcal{F}, P) \)</div>
+            <div class="stat-label">Espacio Probabilístico</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div class="stat-value">\( \chi^2 \text{ / } D_n \)</div>
+            <div class="stat-label">Pruebas de Bondad de Ajuste</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-value">\( X = F^{-1}(U) \)</div>
+            <div class="stat-label">Simulación Pseudoaleatoria</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-value">\( d(p_i, p_j) \le \theta \)</div>
+            <div class="stat-label">Criterio de Matchmaking</div>
+        </div>
+    </div>
+</div>
+
+<!-- Navegación por Pestañas Temáticas -->
+<ul class="nav theory-tabs mb-4 no-print" id="theoryTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-prob-btn" data-bs-toggle="tab" data-bs-target="#tab-prob" type="button" role="tab">
+            1. Espacios de Probabilidad & V.A.
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-discrete-btn" data-bs-toggle="tab" data-bs-target="#tab-discrete" type="button" role="tab">
+            2. Distribuciones Discretas
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-continuous-btn" data-bs-toggle="tab" data-bs-target="#tab-continuous" type="button" role="tab">
+            3. Distribuciones Continuas
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-estimation-btn" data-bs-toggle="tab" data-bs-target="#tab-estimation" type="button" role="tab">
+            4. Estimación Paramétrica (MLE)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-gof-btn" data-bs-toggle="tab" data-bs-target="#tab-gof" type="button" role="tab">
+            5. Pruebas de Hipótesis & GoF
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-sim-btn" data-bs-toggle="tab" data-bs-target="#tab-sim" type="button" role="tab">
+            6. Simulación Pseudoaleatoria
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-mm-btn" data-bs-toggle="tab" data-bs-target="#tab-mm" type="button" role="tab">
+            7. Modelo de Matchmaking
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-glossary-btn" data-bs-toggle="tab" data-bs-target="#tab-glossary" type="button" role="tab">
+            8. Glosario & Tabla Resumen
+        </button>
+    </li>
+</ul>
+
+<!-- Contenedor del Contenido de Pestañas -->
+<div class="tab-content" id="theoryTabContent">
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 1: ESPACIOS DE PROBABILIDAD Y VARIABLES ALEATORIAS     -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade show active" id="tab-prob" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>1.1 Formalización del Espacio de Probabilidad</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Todo fenómeno estocástico observado en el servidor de Counter-Strike: Global Offensive se formaliza matemáticamente sobre una terna de Kolmogórov \((\Omega, \mathcal{F}, P)\):
+                </p>
+                <ul>
+                    <li><strong>\( \Omega \) (Espacio Muestral):</strong> Conjunto de todos los estados elementales posibles en una partida de CS:GO (posicionamientos, instantes de disparo, eventos de daño, rangos y duraciones de ronda).</li>
+                    <li><strong>\( \mathcal{F} \) (\(\sigma\)-Álgebra de Eventos):</strong> Familia de subconjuntos de \( \Omega \) que contiene al evento nulo, es cerrada bajo complementación finita/numerable y uniones numerables:
+                        \[
+                        A \in \mathcal{F} \implies A^c \in \mathcal{F}, \quad \text{y} \quad \{A_i\}_{i=1}^{\infty} \subseteq \mathcal{F} \implies \bigcup_{i=1}^{\infty} A_i \in \mathcal{F}
+                        \]
+                    </li>
+                    <li><strong>\( P \) (Medida de Probabilidad):</strong> Función \( P: \mathcal{F} \to [0, 1] \) que satisface los tres axiomas fundamentales de Kolmogórov:
+                        <ol>
+                            <li><strong>No negatividad:</strong> \( P(A) \ge 0, \quad \forall A \in \mathcal{F} \)</li>
+                            <li><strong>Normalización / Certidumbre:</strong> \( P(\Omega) = 1 \)</li>
+                            <li><strong>\(\sigma\)-Aditividad:</strong> Si \( \{A_i\}_{i=1}^\infty \) son eventos disjuntos dos a dos (\( A_i \cap A_j = \emptyset, \forall i \neq j \)):
+                                \[
+                                P\left(\bigcup_{i=1}^\infty A_i\right) = \sum_{i=1}^\infty P(A_i)
+                                \]
+                            </li>
+                        </ol>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>1.2 Definición Formal de Variable Aleatoria</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Una <strong>Variable Aleatoria</strong> \( X \) es una función medible que asigna un valor real a cada resultado elemental del espacio muestral:
+                </p>
+                <div class="formula-card accent">
+                    <div class="formula-card-title">Mapeo Medible de una Variable Aleatoria</div>
+                    <div class="formula-equation">
+                        \[
+                        X: \Omega \to \mathbb{R} \quad \text{tal que} \quad \forall B \in \mathcal{B}(\mathbb{R}), \quad X^{-1}(B) = \{\omega \in \Omega : X(\omega) \in B\} \in \mathcal{F}
+                        \]
+                    </div>
+                    <p class="formula-desc">donde \( \mathcal{B}(\mathbb{R}) \) es la \(\sigma\)-álgebra de Borel generada por los intervalos abiertos sobre la recta real.</p>
+                </div>
+
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-card-secondary border-0 p-3">
+                            <h6 class="text-primary fw-bold">Variable Aleatoria Discreta</h6>
+                            <p class="small text-secondary mb-2">Su rango \( \mathcal{R}_X = X(\Omega) \) es un subconjunto finito o numerable de \( \mathbb{R} \).</p>
+                            <p class="small"><strong>Función de Masa de Probabilidad (PMF):</strong></p>
+                            <div class="formula-equation small">
+                                \[ p_X(x_k) = P(X = x_k), \quad \sum_{k} p_X(x_k) = 1 \]
+                            </div>
+                            <p class="small"><strong>Función de Distribución Acumulada (CDF):</strong></p>
+                            <div class="formula-equation small">
+                                \[ F_X(x) = P(X \le x) = \sum_{x_k \le x} p_X(x_k) \]
+                            </div>
+                            <p class="small text-muted mb-0"><strong>Ejemplo en CS:GO:</strong> Rango del jugador (<code>att_rank</code> \( \in \{1, 2, \dots, 18\} \)) o número de ronda (<code>round</code> \( \in \{1, \dots, 30\} \)).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-card-secondary border-0 p-3">
+                            <h6 class="text-info fw-bold">Variable Aleatoria Continua</h6>
+                            <p class="small text-secondary mb-2">Su rango \( \mathcal{R}_Y = Y(\Omega) \) comprende uno o más intervalos no numerables de \( \mathbb{R} \).</p>
+                            <p class="small"><strong>Función de Densidad de Probabilidad (PDF):</strong></p>
+                            <div class="formula-equation small">
+                                \[ f_Y(y) \ge 0, \quad \int_{-\infty}^{\infty} f_Y(y)\,dy = 1 \]
+                            </div>
+                            <p class="small"><strong>Función de Distribución Acumulada (CDF):</strong></p>
+                            <div class="formula-equation small">
+                                \[ F_Y(y) = P(Y \le y) = \int_{-\infty}^{y} f_Y(t)\,dt, \quad f_Y(y) = \frac{d}{dy}F_Y(y) \]
+                            </div>
+                            <p class="small text-muted mb-0"><strong>Ejemplo en CS:GO:</strong> Segundo exacto de enfrentamiento letal (<code>seconds</code> \( \in [0, 175] \)) o duración de la ronda (<code>duration</code>).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>1.3 Operadores de Momentos e Índice de Dispersión</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Esperanza Matemática (Primer Momento)</div>
+                            <div class="formula-equation">
+                                \[
+                                \mu = E[X] = \begin{cases} 
+                                \sum_{i} x_i p_X(x_i) & \text{(Discreto)} \\
+                                \int_{-\infty}^\infty x f_X(x)\,dx & \text{(Continuo)}
+                                \end{cases}
+                                \]
+                            </div>
+                            <p class="formula-desc">Representa el centro de masa de la distribución de probabilidad (valor esperado en un horizonte asintótico).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Varianza y Desviación Estándar</div>
+                            <div class="formula-equation">
+                                \[
+                                \sigma^2 = \text{Var}(X) = E[(X - \mu)^2] = E[X^2] - (E[X])^2, \quad \sigma = \sqrt{\text{Var}(X)}
+                                \]
+                            </div>
+                            <p class="formula-desc">Cuantifica la dispersión cuadrática promedio de las observaciones con respecto al valor medio esperado.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Coeficiente de Asimetría (Skewness)</div>
+                            <div class="formula-equation">
+                                \[
+                                \gamma_1 = E\left[\left(\frac{X - \mu}{\sigma}\right)^3\right] = \frac{\mu_3}{\sigma^3}
+                                \]
+                            </div>
+                            <p class="formula-desc">\(\gamma_1 = 0\) simetría perfecta; \(\gamma_1 > 0\) cola derecha extendida (positivo); \(\gamma_1 < 0\) cola izquierda extendida (negativo).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Curtosis y Exceso de Curtosis</div>
+                            <div class="formula-equation">
+                                \[
+                                \beta_2 = E\left[\left(\frac{X - \mu}{\sigma}\right)^4\right] = \frac{\mu_4}{\sigma^4}, \quad \kappa = \beta_2 - 3
+                                \]
+                            </div>
+                            <p class="formula-desc">Mide el peso relativo de las colas. \(\kappa = 0\) mesocúrtica (Normal); \(\kappa > 0\) leptocúrtica (colas pesadas); \(\kappa < 0\) platicúrtica.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formula-card warning mt-3">
+                    <div class="formula-card-title">
+                        <span class="param-badge warning">Diagnóstico Fundamental</span>
+                        Índice de Dispersión / Fano (\(\text{ID}\))
+                    </div>
+                    <div class="formula-equation">
+                        \[
+                        \text{ID} = \frac{\sigma^2}{\mu} = \frac{\text{Var}(X)}{E[X]}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Criterio matemático clave para determinar la familia discreta adecuada en los datos reales de CS:GO:
+                    </p>
+                    <ul class="mb-0 mt-2 text-secondary small">
+                        <li><strong>\(\text{ID} \approx 1\) (Equidispersión):</strong> Compatible con una <strong>Distribución Poisson</strong> (\(\text{Var}(X) = \mu\)).</li>
+                        <li><strong>\(\text{ID} > 1\) (Sobredispersión):</strong> La varianza supera sustancialmente a la media. Esto ocurre comúnmente con los rangos competitivos de CS:GO (<code>att_rank</code>), lo cual descarta Poisson y exige modelar con una <strong>Distribución Binomial Negativa</strong>.</li>
+                        <li><strong>\(\text{ID} < 1\) (Subdispersión):</strong> La varianza es inferior a la media. Característico de la <strong>Distribución Binomial</strong> con \(n\) finito.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 2: DISTRIBUCIONES DISCRETAS                            -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-discrete" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>2.1 Distribución Poisson</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Masa de Probabilidad (PMF)</div>
+                            <div class="formula-equation">
+                                \[
+                                P(X = k) = \frac{\lambda^k e^{-\lambda}}{k!}, \quad k \in \{0, 1, 2, \dots\}, \quad \lambda > 0
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \lambda \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \lambda \)</p>
+                            <p class="small mb-1"><strong>Parámetro:</strong> \( \lambda \): Tasa promedio de ocurrencia.</p>
+                            <p class="small mb-0"><strong>Equidispersión:</strong> \( \text{ID} = \frac{\text{Var}(X)}{E[X]} = 1 \)</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Contexto CS:GO:</strong> Modela el número de eventos discretos independientes que ocurren en un intervalo de tiempo o espacio fijo (ej. bajas logradas con granada HE o tiros a la cabeza en una ronda).
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>2.2 Distribución Binomial</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Masa de Probabilidad (PMF)</div>
+                            <div class="formula-equation">
+                                \[
+                                P(X = k) = \binom{n}{k} p^k (1-p)^{n-k}, \quad k \in \{0, 1, \dots, n\}
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = np \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = np(1-p) \)</p>
+                            <p class="small mb-1"><strong>Parámetros:</strong> \( n \in \mathbb{N} \) ensayos, \( p \in [0, 1] \) éxito.</p>
+                            <p class="small mb-0"><strong>Subdispersión:</strong> \( \text{ID} = 1 - p < 1 \)</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Contexto CS:GO:</strong> Número de rondas ganadas \(k\) por un equipo en un bloque de \(n\) rondas jugadas bajo probabilidad individual constante \(p\).
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>2.3 Distribución Binomial Negativa (Pascal)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card accent">
+                            <div class="formula-card-title">Función de Masa de Probabilidad (PMF)</div>
+                            <div class="formula-equation">
+                                \[
+                                P(X = k) = \binom{k + r - 1}{k} p^r (1-p)^k, \quad k \in \{0, 1, 2, \dots\}
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \frac{r(1-p)}{p} \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \frac{r(1-p)}{p^2} \)</p>
+                            <p class="small mb-1"><strong>Parámetros:</strong> \( r > 0 \) éxitos, \( p \in (0, 1) \).</p>
+                            <p class="small mb-0"><strong>Sobredispersión:</strong> \( \text{ID} = \frac{1}{p} > 1 \)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="academic-note warning mt-3 mb-0">
+                    <strong>¿Por qué es la más relevante para el Skill Rank de CS:GO?</strong>
+                    En el dataset real, el rango competitivo (<code>att_rank</code> de 1 a 18) presenta una concentración bimodal/asimétrica con alta heterogeneidad entre niveles principiantes y avanzados, generando \(\text{Var}(X) > E[X]\). La distribución Binomial Negativa introduce un parámetro de dispersión libre \(r\) que modela con precisión este exceso de variabilidad muestral.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>2.4 Distribución Geométrica</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Masa de Probabilidad (PMF)</div>
+                            <div class="formula-equation">
+                                \[
+                                P(X = k) = (1-p)^{k-1} p, \quad k \in \{1, 2, 3, \dots\}
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \frac{1}{p} \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \frac{1-p}{p^2} \)</p>
+                            <p class="small mb-0"><strong>Pérdida de Memoria:</strong> \( P(X > s + t \mid X > s) = P(X > t) \)</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Contexto CS:GO:</strong> Número de disparos requeridos hasta conseguir el primer impacto letal a la cabeza (headshot) o número de rondas hasta la primera victoria de un equipo novato.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 3: DISTRIBUCIONES CONTINUAS                            -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-continuous" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>3.1 Distribución Normal (Gaussiana)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Densidad de Probabilidad (PDF)</div>
+                            <div class="formula-equation">
+                                \[
+                                f(x; \mu, \sigma) = \frac{1}{\sigma \sqrt{2\pi}} \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right), \quad x \in \mathbb{R}
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \mu \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \sigma^2 \)</p>
+                            <p class="small mb-1"><strong>Asimetría:</strong> \( \gamma_1 = 0 \)</p>
+                            <p class="small mb-0"><strong>Curtosis:</strong> \( \beta_2 = 3 \) (\( \kappa = 0 \))</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Fundamento:</strong> Por el <em>Teorema del Límite Central (CLT)</em>, la suma de variables independientes e idénticamente distribuidas converge asintóticamente a una distribución normal. Modela métricas agregadas normalizadas (ej. Rating 2.0 promedio del jugador).
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>3.2 Distribución Exponencial</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Densidad (PDF) y Distribución Acumulada (CDF)</div>
+                            <div class="formula-equation">
+                                \[
+                                f(x; \lambda) = \lambda e^{-\lambda x}, \quad F(x) = 1 - e^{-\lambda x}, \quad x \ge 0, \quad \lambda > 0
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \frac{1}{\lambda} \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \frac{1}{\lambda^2} \)</p>
+                            <p class="small mb-0"><strong>Tasa de Fallo Constante:</strong> \( h(x) = \frac{f(x)}{1-F(x)} = \lambda \)</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Pérdida de Memoria Continua:</strong> \( P(X > s + t \mid X > s) = P(X > t) \). Modela tiempos de interarribo entre jugadores en la cola de matchmaking o tiempo hasta el primer intercambio de fuego.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>3.3 Distribución Gamma</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card accent">
+                            <div class="formula-card-title">Función de Densidad de Probabilidad (PDF)</div>
+                            <div class="formula-equation">
+                                \[
+                                f(x; \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}, \quad x > 0, \quad \Gamma(\alpha) = \int_0^\infty t^{\alpha-1} e^{-t}\,dt
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( E[X] = \frac{\alpha}{\beta} \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \text{Var}(X) = \frac{\alpha}{\beta^2} \)</p>
+                            <p class="small mb-0"><strong>Parámetros:</strong> \( \alpha > 0 \) (forma), \( \beta > 0 \) (tasa).</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Contexto CS:GO:</strong> Modela de manera precisa los tiempos continuos de combate (<code>seconds</code>) y duraciones de ronda, pues la acumulación de decisiones tácticas genera una distribución estrictamente positiva con asimetría hacia la derecha.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>3.4 Distribución Lognormal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Densidad de Probabilidad (PDF)</div>
+                            <div class="formula-equation">
+                                \[
+                                f(x; \mu, \sigma) = \frac{1}{x \sigma \sqrt{2\pi}} \exp\left(-\frac{(\ln x - \mu)^2}{2\sigma^2}\right), \quad x > 0
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( \exp\left(\mu + \frac{\sigma^2}{2}\right) \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \left(e^{\sigma^2} - 1\right) e^{2\mu + \sigma^2} \)</p>
+                            <p class="small mb-0"><strong>Relación:</strong> \( \ln(X) \sim \mathcal{N}(\mu, \sigma^2) \)</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Contexto CS:GO:</strong> Surge cuando una variable es el resultado del producto de muchos efectos independientes pequeños (ej. valor económico de equipamiento de equipo en dólares, <code>ct_eq_val</code>).
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>3.5 Distribución Weibull</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Función de Densidad (PDF) y Función de Riesgo (Hazard Rate)</div>
+                            <div class="formula-equation">
+                                \[
+                                f(x; k, \lambda) = \frac{k}{\lambda} \left(\frac{x}{\lambda}\right)^{k-1} e^{-(x/\lambda)^k}, \quad h(x) = \frac{k}{\lambda}\left(\frac{x}{\lambda}\right)^{k-1}, \quad x \ge 0
+                                \]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-card-secondary rounded">
+                            <h6 class="text-warning fw-bold mb-2">Propiedades Teóricas</h6>
+                            <p class="small mb-1"><strong>Media:</strong> \( \lambda \Gamma(1 + 1/k) \)</p>
+                            <p class="small mb-1"><strong>Varianza:</strong> \( \lambda^2 \left[\Gamma(1 + 2/k) - (\Gamma(1 + 1/k))^2\right] \)</p>
+                            <p class="small mb-0"><strong>Parámetros:</strong> \( k > 0 \) (forma), \( \lambda > 0 \) (escala).</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">
+                    <strong>Dinámica de Riesgo en CS:GO:</strong> Para \(k > 1\), la tasa de riesgo \(h(x)\) es estrictamente creciente con el tiempo transcurrido en la ronda, reflejando que la urgencia por detonar o desactivar el C4 aumenta exponencialmente la probabilidad de bajas inmediatas.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 4: ESTIMACIÓN PARAMÉTRICA                              -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-estimation" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>4.1 Método de Máxima Verosimilitud (MLE - Maximum Likelihood Estimation)</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Dada una muestra aleatoria de observaciones independientes e idénticamente distribuidas (i.i.d.) \( \mathbf{x} = (x_1, x_2, \dots, x_n) \) provenientes de una función de densidad o masa \( f(x; \vec{\theta}) \):
+                </p>
+                <div class="formula-card accent">
+                    <div class="formula-card-title">Función de Verosimilitud y Log-Verosimilitud</div>
+                    <div class="formula-equation">
+                        \[
+                        L(\vec{\theta}; \mathbf{x}) = \prod_{i=1}^n f(x_i; \vec{\theta}) \implies \ell(\vec{\theta}; \mathbf{x}) = \ln L(\vec{\theta}; \mathbf{x}) = \sum_{i=1}^n \ln f(x_i; \vec{\theta})
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        El estimador de máxima verosimilitud \( \hat{\vec{\theta}}_{\text{MLE}} \) es el vector de parámetros que maximiza la plausibilidad de haber observado los datos obtenidos en el dataset:
+                        \[
+                        \hat{\vec{\theta}}_{\text{MLE}} = \arg\max_{\vec{\theta} \in \Theta} \ell(\vec{\theta}; \mathbf{x})
+                        \]
+                    </p>
+                </div>
+
+                <div class="formula-card">
+                    <div class="formula-card-title">Sistema de Ecuaciones de Score</div>
+                    <div class="formula-equation">
+                        \[
+                        \nabla_{\vec{\theta}} \ell(\vec{\theta}; \mathbf{x}) = \begin{bmatrix} \frac{\partial \ell}{\partial \theta_1} \\ \vdots \\ \frac{\partial \ell}{\partial \theta_p} \end{bmatrix} = \mathbf{0}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Condición de segundo orden (Hessiano semidefinido negativo): \( \nabla^2_{\vec{\theta}} \ell(\vec{\theta}; \mathbf{x}) \prec 0 \).
+                    </p>
+                </div>
+
+                <div class="math-proof-box">
+                    <h6>Demostración Analítica: Estimador MLE para la Distribución Exponencial</h6>
+                    <p class="small text-secondary mb-1">
+                        Sea \( f(x_i; \lambda) = \lambda e^{-\lambda x_i} \). La función de log-verosimilitud es:
+                        \[
+                        \ell(\lambda) = \sum_{i=1}^n \left[\ln(\lambda) - \lambda x_i\right] = n \ln(\lambda) - \lambda \sum_{i=1}^n x_i
+                        \]
+                    </p>
+                    <p class="small text-secondary mb-1">
+                        Derivando con respecto a \( \lambda \) e igualando a cero:
+                        \[
+                        \frac{d\ell}{d\lambda} = \frac{n}{\lambda} - \sum_{i=1}^n x_i = 0 \implies \frac{n}{\lambda} = n \bar{x} \implies \hat{\lambda}_{\text{MLE}} = \frac{1}{\bar{x}}
+                        \]
+                    </p>
+                    <p class="small text-muted mb-0">
+                        Verificación de segundo orden: \( \frac{d^2\ell}{d\lambda^2} = -\frac{n}{\lambda^2} < 0 \), confirmando que se trata de un máximo global estricto.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>4.2 Cota Inferior de Cramér-Rao e Información de Fisher</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    La <strong>Información de Fisher</strong> cuantifica la cantidad de información que la muestra observada aporta sobre el parámetro desconocido \( \theta \):
+                </p>
+                <div class="formula-card">
+                    <div class="formula-card-title">Matriz de Información de Fisher y Cota de Cramér-Rao</div>
+                    <div class="formula-equation">
+                        \[
+                        \mathcal{I}(\theta) = -E\left[\frac{\partial^2 \ln f(X; \theta)}{\partial \theta^2}\right] \implies \text{Var}(\hat{\theta}) \ge \frac{1}{n \mathcal{I}(\theta)}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Cualquier estimador insesgado de \( \theta \) tiene una varianza no menor a \( \frac{1}{n \mathcal{I}(\theta)} \). Los estimadores MLE son asintóticamente eficientes: alcanzan esta cota mínima cuando \( n \to \infty \).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>4.3 Criterios de Información para Comparación de Modelos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Criterio de Akaike (AIC)</div>
+                            <div class="formula-equation">
+                                \[
+                                \text{AIC} = 2k - 2\ln(\hat{L})
+                                \]
+                            </div>
+                            <p class="formula-desc">Penaliza el número de parámetros \(k\) con peso constante \(2k\). Menor AIC indica mejor balance entre bondad de ajuste y parsimonia.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Criterio Bayesiano (BIC)</div>
+                            <div class="formula-equation">
+                                \[
+                                \text{BIC} = k\ln(n) - 2\ln(\hat{L})
+                                \]
+                            </div>
+                            <p class="formula-desc">Penaliza parámetros en función del tamaño muestral \(n\). Para muestras grandes (\(n > e^2 \approx 7.39\)), BIC penaliza la complejidad con mayor severidad que AIC.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 5: PRUEBAS DE HIPÓTESIS Y BONDAD DE AJUSTE             -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-gof" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>5.1 Planteamiento Formal y Rigor Epistemológico del \(p\)-Valor</h5>
+            </div>
+            <div class="card-body">
+                <div class="formula-card">
+                    <div class="formula-card-title">Hipótesis de Bondad de Ajuste</div>
+                    <div class="formula-equation">
+                        \[
+                        H_0: F(x) = F_0(x; \hat{\vec{\theta}}) \quad \text{vs.} \quad H_1: F(x) \neq F_0(x; \hat{\vec{\theta}})
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Donde \( F_0(x; \hat{\vec{\theta}}) \) es la función de distribución teórica postulada y \( \alpha \) es el nivel de significancia prefijado (típicamente \( \alpha = 0.05 \)).
+                    </p>
+                </div>
+
+                <div class="academic-note warning">
+                    <h6 class="fw-bold mb-2">Advertencia Estadística Fundamental sobre el \(p\)-Valor</h6>
+                    <p class="small mb-1">
+                        <strong>Definición formal:</strong> El \(p\)-valor es la probabilidad \( P(T \ge t_{\text{obs}} \mid H_0) \) de obtener un estadístico de prueba tan o más extremo que el observado, asumiendo que \( H_0 \) es estrictamente verdadera.
+                    </p>
+                    <ul class="small mb-0 text-secondary">
+                        <li><strong>Si \( p \le \alpha \):</strong> Se <strong>rechaza \( H_0 \)</strong> con significancia estadística. La evidencia empírica es incompatible con el modelo teórico.</li>
+                        <li><strong>Si \( p > \alpha \):</strong> <strong>NO se rechaza \( H_0 \)</strong>. No existe evidencia muestral suficiente para descartar la distribución teórica.</li>
+                        <li><strong>Principio Lógico:</strong> En ningún caso se debe afirmar que \( p > \alpha \) "prueba", "comprueba" o "demuestra" que los datos siguen la distribución \( H_0 \). La ausencia de evidencia de discordancia no es evidencia de coincidencia exacta.</li>
+                        <li><strong>Efecto del Gran Tamaño Muestral (\(n = 50,000\)):</strong> Con muestras masivas, discrepancias microscópicas del mundo real adquieren significancia estadística (\(p \approx 0\)), por lo que la selección de modelos debe complementarse con gráficos Q-Q, distancias KS y criterios de información (AIC/BIC).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>5.2 Prueba Chi-Cuadrada (\(\chi^2\)) de Bondad de Ajuste (Discreta)</h5>
+            </div>
+            <div class="card-body">
+                <div class="formula-card accent">
+                    <div class="formula-card-title">Estadístico de Pearson y Condición de Cochran</div>
+                    <div class="formula-equation">
+                        \[
+                        \chi^2 = \sum_{i=1}^k \frac{(O_i - E_i)^2}{E_i} \sim \chi^2(\nu), \quad E_i = n \cdot p_i(\hat{\vec{\theta}})
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        donde \( O_i \) es la frecuencia observada en la categoría \(i\), \( E_i \) es la frecuencia esperada bajo \( H_0 \), y \( \nu \) son los grados de libertad:
+                        \[
+                        \nu = k_{\text{agrupado}} - 1 - m
+                        \]
+                        siendo \( m \) la cantidad de parámetros estimados mediante MLE a partir de los datos.
+                    </p>
+                </div>
+                <p class="small text-secondary mb-0">
+                    <strong>Regla de Cochran implementada en la aplicación:</strong> Si una categoría presenta \( E_i < 5 \), la plataforma fusiona automáticamente intervalos adyacentes hasta garantizar \( E_i \ge 5 \), evitando la distorsión asintótica del estadístico.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>5.3 Prueba de Kolmogorov-Smirnov (KS) (Continua)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">KS de Una Muestra (Ajuste Teórico)</div>
+                            <div class="formula-equation">
+                                \[
+                                D_n = \sup_{x \in \mathbb{R}} |F_n(x) - F_0(x)|
+                                \]
+                            </div>
+                            <p class="formula-desc">Distancia suprema vertical entre la Función de Distribución Empírica \( F_n(x) = \frac{1}{n} \sum_{i=1}^n \mathbb{I}(X_i \le x) \) y la CDF teórica continua \( F_0(x) \).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">KS de Dos Muestras (Real vs. Simulado)</div>
+                            <div class="formula-equation">
+                                \[
+                                D_{n_1, n_2} = \sup_{x \in \mathbb{R}} |F_{n_1}(x) - G_{n_2}(x)|
+                                \]
+                            </div>
+                            <p class="formula-desc">Evalúa si la muestra real del dataset (\(n_1\)) y la muestra generada por el simulador pseudoaleatorio (\(n_2 = 10,000\)) provienen de la misma población subyacente.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>5.4 Pruebas Especializadas: Anderson-Darling, Shapiro-Wilk y Gráfico Q-Q</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Prueba de Anderson-Darling (\(A^2\))</div>
+                            <div class="formula-equation">
+                                \[
+                                A^2 = -n - \frac{1}{n} \sum_{i=1}^n (2i-1)\left[\ln F(X_{(i)}) + \ln(1 - F(X_{(n+1-i)}))\right]
+                                \]
+                            </div>
+                            <p class="formula-desc">Pondera con mayor peso las colas de la distribución mediante la función de ponderación \( w(x) = [F(x)(1-F(x))]^{-1} \).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-card">
+                            <div class="formula-card-title">Prueba de Shapiro-Wilk (\(W\))</div>
+                            <div class="formula-equation">
+                                \[
+                                W = \frac{\left(\sum_{i=1}^n a_i X_{(i)}\right)^2}{\sum_{i=1}^n (X_i - \bar{X})^2}
+                                \]
+                            </div>
+                            <p class="formula-desc">Prueba de normalidad con máxima potencia estadística en muestras moderadas, basada en la covarianza de estadísticos de orden.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formula-card mt-3">
+                    <div class="formula-card-title">Gráfico Cuantil-Cuantil (Q-Q Plot)</div>
+                    <div class="formula-equation">
+                        \[
+                        \left(q_{\text{teórico}, i}, q_{\text{empírico}, i}\right) = \left(F_0^{-1}\left(\frac{i - 0.5}{n}\right), X_{(i)}\right), \quad i \in \{1, 2, \dots, n\}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Si los datos provienen de la distribución teórica postulada, los pares de cuantiles se alinean estrechamente sobre la recta identidad \( y = x \). Desviaciones en los extremos evidencian colas pesadas o asimetrías no capturadas.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 6: SIMULACIÓN PSEUDOALEATORIA                          -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-sim" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>6.1 Generador Base: Mersenne Twister (MT19937)</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Todo el motor de simulación de 10,000 observaciones se sustenta en el algoritmo <strong>Mersenne Twister (MT19937)</strong>, el cual genera una secuencia pseudoaleatoria determinista de números uniformes \( U \sim \mathcal{U}(0, 1) \) con un período colosal de:
+                </p>
+                <div class="formula-equation">
+                    \[
+                    T = 2^{19937} - 1 \approx 4.315 \times 10^{6001}
+                    \]
+                </div>
+                <p class="small text-secondary mb-0">
+                    Garantiza equidistribución hasta en 623 dimensiones, cumpliendo con los estándares de rigor para simulaciones estocásticas de Monte Carlo.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>6.2 Método de la Transformada Inversa</h5>
+            </div>
+            <div class="card-body">
+                <div class="formula-card accent">
+                    <div class="formula-card-title">Teorema de la Transformada Inversa</div>
+                    <div class="formula-equation">
+                        \[
+                        X = F^{-1}(U), \quad \text{donde } U \sim \mathcal{U}(0, 1) \implies X \sim F
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Permite generar observaciones exactas de cualquier variable aleatoria continua con función de distribución acumulada estrictamente creciente \(F\).
+                    </p>
+                </div>
+
+                <div class="math-proof-box">
+                    <h6>Demostración Matemática Formal</h6>
+                    <p class="small text-secondary mb-1">
+                        Sea \( U \sim \mathcal{U}(0, 1) \), cuya función de distribución es \( P(U \le u) = u \) para \( u \in [0, 1] \). Definimos \( X = F^{-1}(U) \). Evaluando la CDF de \(X\):
+                        \[
+                        F_X(x) = P(X \le x) = P(F^{-1}(U) \le x)
+                        \]
+                    </p>
+                    <p class="small text-secondary mb-1">
+                        Aplicando la función monótona no decreciente \( F \) a ambos miembros de la desigualdad:
+                        \[
+                        P(F(F^{-1}(U)) \le F(x)) = P(U \le F(x))
+                        \]
+                    </p>
+                    <p class="small text-secondary mb-1">
+                        Dado que \( P(U \le u) = u \) para la distribución uniforme, sustituyendo \( u = F(x) \):
+                        \[
+                        P(U \le F(x)) = F(x) \quad \blacksquare
+                        \]
+                    </p>
+                    <p class="small text-muted mb-0">
+                        <strong>Aplicación para la Exponencial:</strong> \( F(x) = 1 - e^{-\lambda x} = U \implies 1 - U = e^{-\lambda x} \implies X = -\frac{1}{\lambda} \ln(1 - U) \equiv -\frac{1}{\lambda}\ln(U) \).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>6.3 Algoritmo Box-Muller para Variables Normales</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Dado que la CDF de la distribución normal estándar \( \Phi(z) \) no posee inversa analítica elemental, el algoritmo de <strong>Box-Muller</strong> transforma un par de variables uniformes independientes \( (U_1, U_2) \) en dos variables normales estándar independientes \( (Z_1, Z_2) \):
+                </p>
+                <div class="formula-card">
+                    <div class="formula-card-title">Transformación a Coordenadas Polares Box-Muller</div>
+                    <div class="formula-equation">
+                        \[
+                        Z_1 = \sqrt{-2\ln(U_1)} \cos(2\pi U_2), \quad Z_2 = \sqrt{-2\ln(U_1)} \sin(2\pi U_2) \sim \mathcal{N}(0, 1)
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Escalado posterior a los parámetros de la variable real de CS:GO: \( X = \mu + \sigma Z_1 \).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>6.4 Algoritmos Avanzados: Ziggurat, Marsaglia-Tsang y BTPE</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded h-100">
+                            <h6 class="text-primary fw-bold">Algoritmo de Ziggurat</h6>
+                            <p class="small text-secondary mb-0">
+                                Segmenta la campana gaussiana en 256 rectángulos horizontales equiprobables apilados. Más del 98% de los números se generan mediante operaciones bit a bit en tiempo constante \( \mathcal{O}(1) \).
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded h-100">
+                            <h6 class="text-info fw-bold">Algoritmo Marsaglia-Tsang (Gamma)</h6>
+                            <p class="small text-secondary mb-0">
+                                Transforma una variable normal cúbica \( (1 + cZ)^3 \) mediante un esquema de aceptación-rechazo rápido sin requerir evaluar funciones trigonométricas costosas.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded h-100">
+                            <h6 class="text-warning fw-bold">Algoritmo BTPE (Binomial/Pascal)</h6>
+                            <p class="small text-secondary mb-0">
+                                Método envolvente trapezoidal-triangular para generar variables discretas con parámetros grandes (\(np > 30\)) de forma exacta sin iterar sobre ensayos individuales.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 7: MODELO DE MATCHMAKING                               -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-mm" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>7.1 Vector Estocástico de Estado del Jugador</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Cada jugador \(i\) que solicita ingresar a una partida de CS:GO se modela como un vector de atributos independientes generados a partir de las distribuciones ajustadas:
+                </p>
+                <div class="formula-card">
+                    <div class="formula-card-title">Vector de Atributos del Jugador</div>
+                    <div class="formula-equation">
+                        \[
+                        \vec{p}_i = \begin{bmatrix} R_i \\ C_i \end{bmatrix} \in \mathbb{R}^2, \quad \text{donde} \quad 
+                        \begin{cases} 
+                        R_i \sim F_{\text{discreta}} & (\text{Skill Rank, rango } [1, 18]) \\
+                        C_i \sim F_{\text{continua}} & (\text{Combat Rating, rango continuo})
+                        \end{cases}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Tiempo de llegada a la cola: \( t_i \ge 0 \), siguiendo un proceso puntual de Poisson con tasa media \( \lambda_{\text{llegada}} \) jugadores por segundo.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>7.2 Métrica de Distancia Euclidiana Normalizada Ponderada</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    Dado que el rango competitivo \(R\) (adimensional entero 1-18) y la calificación de combate \(C\) (escala continua) poseen dimensiones y magnitudes heterogéneas, se define la distancia normalizada:
+                </p>
+                <div class="formula-card accent">
+                    <div class="formula-card-title">Métrica de Compatibilidad Multivariable</div>
+                    <div class="formula-equation">
+                        \[
+                        d(p_i, p_j) = \sqrt{w_R \left(\frac{R_i - R_j}{R_{\max} - R_{\min}}\right)^2 + w_C \left(\frac{C_i - C_j}{C_{\max} - C_{\min}}\right)^2}
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        donde \( w_R, w_C \ge 0 \) son los pesos asignados con restricción \( w_R + w_C = 1 \). La distancia resultante está normalizada en el intervalo compacto \( [0, 1] \).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>7.3 Grafo de Compatibilidad y Umbral Dinámico de Relajación</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    El estado de la cola se representa formalmente como un <strong>Grafo No Dirigido Ponderado</strong> \( G(t) = (\mathcal{V}(t), \mathcal{E}(t)) \), donde cada vértice \( v_i \in \mathcal{V}(t) \) es un jugador en espera en el instante \(t\). Existe una arista entre los jugadores \(i\) y \(j\) si satisfacen el umbral de tolerancia:
+                </p>
+                <div class="formula-card">
+                    <div class="formula-card-title">Criterio de Compatibilidad Temporal</div>
+                    <div class="formula-equation">
+                        \[
+                        (i, j) \in \mathcal{E}(t) \iff d(p_i, p_j) \le \theta(t)
+                        \]
+                    </div>
+                    <div class="formula-equation">
+                        \[
+                        \theta(t) = \theta_0 + \kappa \cdot \ln(1 + t_{\text{espera}}), \quad \text{con } t_{\text{espera}} = t - \min(t_i, t_j)
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        \( \theta_0 \) es el umbral inicial estricto de emparejamiento. La relajación logarítmica \( \kappa \cdot \ln(1 + t) \) evita que jugadores de niveles extremos (Silver 1 o Global Elite) permanezcan indefinidamente en inanición (starvation) dentro de la cola.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>7.4 Particionamiento Balanceado de Equipos 5v5 y Ley de Little</h5>
+            </div>
+            <div class="card-body">
+                <div class="formula-card success">
+                    <div class="formula-card-title">Optimización del Balance 5v5 (Counter-Terrorists vs. Terrorists)</div>
+                    <div class="formula-equation">
+                        \[
+                        \min_{\text{CT}, \text{T} \subset \mathcal{M}, |\text{CT}| = |\text{T}| = 5} \left| \sum_{i \in \text{CT}} \vec{p}_i - \sum_{j \in \text{T}} \vec{p}_j \right| \quad \text{sujeto a} \quad \max_{i, j \in \mathcal{M}} d(p_i, p_j) \le \theta
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        Minimiza la disparidad competitiva neta entre ambos bandos para aproximar la probabilidad de victoria de cada equipo a \( P(\text{Victoria}) \approx 0.50 \).
+                    </p>
+                </div>
+
+                <div class="formula-card mt-3">
+                    <div class="formula-card-title">Teorema de la Ley de Little en Estado Estacionario</div>
+                    <div class="formula-equation">
+                        \[
+                        L_q = \lambda_{\text{llegada}} \cdot W_q
+                        \]
+                    </div>
+                    <p class="formula-desc">
+                        En equilibrio estocástico, el número medio de jugadores esperando en la cola \( L_q \) es directamente proporcional a la tasa media de llegadas \( \lambda_{\text{llegada}} \) multiplicada por el tiempo promedio de espera en cola \( W_q \).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 8: GLOSARIO Y RESUMEN DE FÓRMULAS                      -->
+    <!-- ============================================================== -->
+    <div class="tab-pane fade" id="tab-glossary" role="tabpanel">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>8.1 Glosario de Notación y Símbolos Estadísticos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table theory-table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Símbolo</th>
+                                <th>Concepto Formal</th>
+                                <th>Fórmula / Dominio</th>
+                                <th>Interpretación en Matchmaking CS:GO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>\(\Omega\)</code></td>
+                                <td>Espacio Muestral</td>
+                                <td>\( \Omega = \{\omega_1, \omega_2, \dots\} \)</td>
+                                <td>Universo de todos los eventos y estados posibles en partidas de CS:GO.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(X\)</code></td>
+                                <td>Variable Aleatoria Discreta</td>
+                                <td>\( X \in \{1, 2, \dots, 18\} \)</td>
+                                <td>Rango oficial del atacante (<code>att_rank</code>: Silver 1 a Global Elite).</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(Y\)</code></td>
+                                <td>Variable Aleatoria Continua</td>
+                                <td>\( Y \in [0, 175] \) s</td>
+                                <td>Instante del enfrentamiento letal dentro de la ronda (<code>seconds</code>).</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\mu\)</code></td>
+                                <td>Esperanza Matemática</td>
+                                <td>\( E[X] \)</td>
+                                <td>Nivel o segundo promedio poblacional del dataset.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\sigma^2\)</code></td>
+                                <td>Varianza Poblacional</td>
+                                <td>\( E[(X-\mu)^2] \)</td>
+                                <td>Heterogeneidad o dispersión en la habilidad/tiempos de los jugadores.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\text{ID}\)</code></td>
+                                <td>Índice de Dispersión</td>
+                                <td>\( \sigma^2 / \mu \)</td>
+                                <td>Diagnóstico de sobredispersión (\(>1\)) en el rango competitivo.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(L(\theta)\)</code></td>
+                                <td>Función de Verosimilitud</td>
+                                <td>\( \prod_{i=1}^n f(x_i; \theta) \)</td>
+                                <td>Plausibilidad de los parámetros dados los datos observados en Kaggle.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(H_0\)</code></td>
+                                <td>Hipótesis Nula</td>
+                                <td>\( F = F_0 \)</td>
+                                <td>Postulado de que los datos siguen la distribución teórica propuesta.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\alpha\)</code></td>
+                                <td>Nivel de Significancia</td>
+                                <td>\( 0.05 \)</td>
+                                <td>Probabilidad de cometer Error Tipo I (rechazar \(H_0\) siendo cierta).</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(p\)-valor</code></td>
+                                <td>Probabilidad Crítica</td>
+                                <td>\( P(T \ge t_{\text{obs}} \mid H_0) \)</td>
+                                <td>Evidencia empírica frente a \(H_0\). Si \(p > \alpha\), <em>no se rechaza \(H_0\)</em>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\chi^2\)</code></td>
+                                <td>Estadístico Chi-Cuadrada</td>
+                                <td>\( \sum (O_i - E_i)^2 / E_i \)</td>
+                                <td>Bondad de ajuste para variables discretas agrupadas.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(D_n\)</code></td>
+                                <td>Estadístico KS</td>
+                                <td>\( \sup |F_n(x) - F_0(x)| \)</td>
+                                <td>Máxima discrepancia vertical acumulada para variables continuas.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(d(p_i, p_j)\)</code></td>
+                                <td>Distancia Euclidiana Normalizada</td>
+                                <td>\( \sqrt{w_R \Delta R^2 + w_C \Delta C^2} \)</td>
+                                <td>Disparidad multivariable entre dos jugadores solicitantes de partida.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(\theta\)</code></td>
+                                <td>Umbral de Tolerancia</td>
+                                <td>\( [0, 1] \)</td>
+                                <td>Criterio de corte para considerar a dos jugadores compatibles.</td>
+                            </tr>
+                            <tr>
+                                <td><code>\(L_q\)</code></td>
+                                <td>Longitud Media de Cola</td>
+                                <td>\( \lambda W_q \)</td>
+                                <td>Cantidad esperada de jugadores en cola en régimen estacionario.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>8.2 Tabla Resumen de Distribuciones Paramétricas</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table theory-table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Distribución</th>
+                                <th>Tipo</th>
+                                <th>Función de Probabilidad</th>
+                                <th>Esperanza \(E[X]\)</th>
+                                <th>Varianza \(\text{Var}(X)\)</th>
+                                <th>Parámetros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Poisson</strong></td>
+                                <td>Discreta</td>
+                                <td>\( \frac{\lambda^k e^{-\lambda}}{k!} \)</td>
+                                <td>\( \lambda \)</td>
+                                <td>\( \lambda \)</td>
+                                <td>\( \lambda > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Binomial</strong></td>
+                                <td>Discreta</td>
+                                <td>\( \binom{n}{k} p^k (1-p)^{n-k} \)</td>
+                                <td>\( np \)</td>
+                                <td>\( np(1-p) \)</td>
+                                <td>\( n \in \mathbb{N}, p \in [0, 1] \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Binomial Negativa</strong></td>
+                                <td>Discreta</td>
+                                <td>\( \binom{k+r-1}{k} p^r (1-p)^k \)</td>
+                                <td>\( \frac{r(1-p)}{p} \)</td>
+                                <td>\( \frac{r(1-p)}{p^2} \)</td>
+                                <td>\( r > 0, p \in (0, 1) \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Geométrica</strong></td>
+                                <td>Discreta</td>
+                                <td>\( (1-p)^{k-1} p \)</td>
+                                <td>\( \frac{1}{p} \)</td>
+                                <td>\( \frac{1-p}{p^2} \)</td>
+                                <td>\( p \in (0, 1) \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Normal</strong></td>
+                                <td>Continua</td>
+                                <td>\( \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}} \)</td>
+                                <td>\( \mu \)</td>
+                                <td>\( \sigma^2 \)</td>
+                                <td>\( \mu \in \mathbb{R}, \sigma > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Exponencial</strong></td>
+                                <td>Continua</td>
+                                <td>\( \lambda e^{-\lambda x} \)</td>
+                                <td>\( \frac{1}{\lambda} \)</td>
+                                <td>\( \frac{1}{\lambda^2} \)</td>
+                                <td>\( \lambda > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Gamma</strong></td>
+                                <td>Continua</td>
+                                <td>\( \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} \)</td>
+                                <td>\( \frac{\alpha}{\beta} \)</td>
+                                <td>\( \frac{\alpha}{\beta^2} \)</td>
+                                <td>\( \alpha > 0, \beta > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Lognormal</strong></td>
+                                <td>Continua</td>
+                                <td>\( \frac{1}{x\sigma\sqrt{2\pi}} e^{-\frac{(\ln x - \mu)^2}{2\sigma^2}} \)</td>
+                                <td>\( e^{\mu + \frac{\sigma^2}{2}} \)</td>
+                                <td>\( (e^{\sigma^2}-1)e^{2\mu+\sigma^2} \)</td>
+                                <td>\( \mu \in \mathbb{R}, \sigma > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Weibull</strong></td>
+                                <td>Continua</td>
+                                <td>\( \frac{k}{\lambda}\left(\frac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k} \)</td>
+                                <td>\( \lambda \Gamma(1 + 1/k) \)</td>
+                                <td>\( \lambda^2 [\Gamma(1+\frac{2}{k}) - \Gamma^2(1+\frac{1}{k})] \)</td>
+                                <td>\( k > 0, \lambda > 0 \)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Uniforme</strong></td>
+                                <td>Continua</td>
+                                <td>\( \frac{1}{b-a} \)</td>
+                                <td>\( \frac{a+b}{2} \)</td>
+                                <td>\( \frac{(b-a)^2}{12} \)</td>
+                                <td>\( a < b \)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Asegurar que KaTeX renderice al alternar pestañas de Bootstrap
+document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tabBtn => {
+    tabBtn.addEventListener('shown.bs.tab', function () {
+        if (typeof renderMathInElement !== 'undefined') {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\[', right: '\\]', display: true},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

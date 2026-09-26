@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Explorador del Dataset — CS:GO Matchmaking{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Explorador del Dataset</h1>
+        <p class="page-subtitle">Inspección, diagnóstico y selección de archivos de datos reales de CS:GO</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-warning btn-sm" onclick="downloadFromKaggle()" id="btnKaggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Sincronizar KaggleHub
+        </button>
+    </div>
+</div>
+
+<!-- Selector de Archivo CSV -->
+<div class="card mb-4" style="border-left: 4px solid var(--accent);">
+    <div class="card-body">
+        <div class="row align-items-center g-3">
+            <div class="col-md-5">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Archivo de Datos Activo</label>
+                <select class="form-select bg-dark text-light border-secondary" id="csvFileSelect" onchange="onFileSelectionChange()">
+                    <option value="" disabled selected>Detectando archivos disponibles...</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small text-uppercase fw-bold mb-1">Muestra de Filas</label>
+                <select class="form-select bg-dark text-light border-secondary" id="rowLimitSelect">
+                    <option value="25000">25,000 registros (Ultra Rápido)</option>
+                    <option value="50000" selected>50,000 registros (Recomendado)</option>
+                    <option value="100000">100,000 registros (Alta Potencia)</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button class="btn btn-primary w-100" onclick="loadSelectedFile()" id="btnLoadFile">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Cargar en Memoria
+                </button>
+            </div>
+        </div>
+        <div class="mt-2 text-muted small" id="fileDescriptionText"></div>
+    </div>
+</div>
+
+<!-- Indicador de Carga -->
+<div id="datasetLoading" class="card mb-4" style="display:none;">
+    <div class="card-body text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="text-light">Procesando y cargando datos de CS:GO...</h5>
+        <p class="text-muted">Extrayendo columnas, calculando nulos y resumiendo momentos estadísticos.</p>
+    </div>
+</div>
+
+<div id="datasetContent">
+    <!-- Métricas principales del Dataset -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card accent">
+            <div class="stat-value" id="statRows">—</div>
+            <div class="stat-label">Filas Cargadas</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-value" id="statCols">—</div>
+            <div class="stat-label">Columnas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statDuplicates">—</div>
+            <div class="stat-label">Duplicados</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value" id="statMemory">—</div>
+            <div class="stat-label">Uso Memoria RAM</div>
+        </div>
+    </div>
+
+    <!-- Pestañas del Explorador -->
+    <div class="card mb-4">
+        <div class="card-header border-bottom border-secondary p-0">
+            <ul class="nav nav-tabs border-0" id="explorerTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="head-tab" data-bs-toggle="tab" data-bs-target="#head" type="button">Primeras Filas (Head)</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tail-tab" data-bs-toggle="tab" data-bs-target="#tail" type="button">Últimas Filas (Tail)</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button">Estadísticas por Columna</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="types-tab" data-bs-toggle="tab" data-bs-target="#types" type="button">Diccionario de Columnas</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-0">
+            <div class="tab-content">
+                <!-- Primeras filas -->
+                <div class="tab-pane fade show active p-3" id="head" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-striped mb-0 text-nowrap" id="headTable">
+                            <thead class="table-primary text-uppercase small" id="headTableHead"></thead>
+                            <tbody id="headTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Últimas filas -->
+                <div class="tab-pane fade p-3" id="tail" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-striped mb-0 text-nowrap" id="tailTable">
+                            <thead class="table-primary text-uppercase small" id="tailTableHead"></thead>
+                            <tbody id="tailTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Estadísticas descriptivas -->
+                <div class="tab-pane fade p-3" id="stats" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-bordered mb-0" id="statsTable">
+                            <thead class="table-primary text-uppercase small">
+                                <tr>
+                                    <th>Columna</th>
+                                    <th>Tipo</th>
+                                    <th>Nulos</th>
+                                    <th>% Nulos</th>
+                                    <th>Valores Únicos</th>
+                                    <th>Mínimo</th>
+                                    <th>Máximo</th>
+                                    <th>Media (x̄)</th>
+                                    <th>Desv. Estándar (s)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Diccionario y tipos -->
+                <div class="tab-pane fade p-4" id="types" role="tabpanel">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3">Resumen de Tipos de Datos y Presencia</h6>
+                    <div class="row g-3" id="columnsListDiv"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detección de Variables Recomendadas para Modelación -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 4px solid var(--accent);">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-warning">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Variables Candidatas: Discretas
+                    </h5>
+                    <span class="badge bg-warning text-dark">Valores Enteros / Conteos</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Columnas numéricas con cardinalidad finita (rangos competitivos 1-18, conteo de rondas, jugadores vivos).
+                    </p>
+                    <div id="discreteSuggestionsList" class="d-flex flex-column gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 4px solid var(--blue);">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                        Variables Candidatas: Continuas
+                    </h5>
+                    <span class="badge bg-info text-dark">Magnitudes Reales Continuas</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Columnas de alta cardinalidad que representan magnitudes temporales, físicas o económicas (duración en segundos, daño, economía).
+                    </p>
+                    <div id="continuousSuggestionsList" class="d-flex flex-column gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let availableFiles = [];
+let currentDatasetInfo = null;
+
+// Cargar lista de archivos CSV y estado inicial
+async function initDatasetExplorer() {
+    try {
+        // 1. Obtener lista de archivos disponibles
+        const filesResp = await fetch('/api/dataset/files');
+        const filesData = await filesResp.json();
+        
+        const select = document.getElementById('csvFileSelect');
+        select.innerHTML = '';
+        
+        if (filesData.success && filesData.files && filesData.files.length > 0) {
+            availableFiles = filesData.files;
+            filesData.files.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.filepath;
+                opt.textContent = `${f.filename} (${f.size_mb} MB)`;
+                opt.dataset.desc = f.description;
+                select.appendChild(opt);
+            });
+        }
+        
+        // 2. Inicializar carga del dataset activo
+        showLoading(true);
+        const initResp = await fetch('/api/dataset/init', { method: 'POST' });
+        const initData = await initResp.json();
+        showLoading(false);
+        
+        if (initData.success) {
+            currentDatasetInfo = initData.info;
+            updateUIWithDataset(initData.info);
+            // Marcar archivo seleccionado en el dropdown
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === initData.info.filepath) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+            onFileSelectionChange();
+            loadHeadData();
+            loadStatsData();
+            loadSuggestions();
+        } else {
+            showNotification('Aviso: ' + (initData.error || 'Carga inicial no completada'), 'warning');
+        }
+    } catch (err) {
+        showLoading(false);
+        console.error('Error al inicializar explorador:', err);
+    }
+}
+
+function onFileSelectionChange() {
+    const select = document.getElementById('csvFileSelect');
+    const selectedOpt = select.options[select.selectedIndex];
+    const descText = selectedOpt ? selectedOpt.dataset.desc : '';
+    document.getElementById('fileDescriptionText').textContent = descText ? `Nota: ${descText}` : '';
+}
+
+async function loadSelectedFile() {
+    const select = document.getElementById('csvFileSelect');
+    const filepath = select.value;
+    const nrows = parseInt(document.getElementById('rowLimitSelect').value);
+    
+    if (!filepath) return;
+    
+    try {
+        showLoading(true);
+        const resp = await fetch('/api/dataset/load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filepath, nrows })
+        });
+        const data = await resp.json();
+        showLoading(false);
+        
+        if (data.success) {
+            currentDatasetInfo = data.info;
+            updateUIWithDataset(data.info);
+            loadHeadData();
+            loadStatsData();
+            loadSuggestions();
+            showNotification(`Archivo ${data.info.filename} cargado exitosamente (${data.info.n_rows.toLocaleString()} filas).`, 'success');
+        } else {
+            showNotification('Error al cargar archivo: ' + data.error, 'danger');
+        }
+    } catch (err) {
+        showLoading(false);
+        showNotification('Error de conexión: ' + err.message, 'danger');
+    }
+}
+
+function updateUIWithDataset(info) {
+    document.getElementById('statRows').textContent = info.n_rows.toLocaleString();
+    document.getElementById('statCols').textContent = info.n_cols;
+    document.getElementById('statDuplicates').textContent = info.n_duplicates.toLocaleString();
+    document.getElementById('statMemory').textContent = `${info.memory_usage_mb} MB`;
+    
+    // Lista de tipos de datos
+    const dictDiv = document.getElementById('columnsListDiv');
+    dictDiv.innerHTML = '';
+    info.columns.forEach(col => {
+        const dtype = info.dtypes[col] || 'unknown';
+        const nulls = info.null_counts[col] || 0;
+        const pct = info.null_percentage[col] || 0;
+        
+        const badgeColor = dtype.includes('int') ? 'text-primary' : (dtype.includes('float') ? 'text-info' : 'text-warning');
+        
+        dictDiv.innerHTML += `
+            <div class="col-md-4 col-sm-6">
+                <div class="p-2 rounded bg-dark border border-secondary">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="text-light">${col}</strong>
+                        <span class="badge bg-secondary ${badgeColor}">${dtype}</span>
+                    </div>
+                    <small class="text-muted">${nulls} nulos (${pct}%)</small>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function loadHeadData() {
+    try {
+        const resp = await fetch('/api/dataset/head?n=10');
+        const rows = await resp.json();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        
+        const cols = Object.keys(rows[0]);
+        const thead = document.getElementById('headTableHead');
+        const tbody = document.getElementById('headTableBody');
+        
+        thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+        tbody.innerHTML = rows.map(r => `<tr>${cols.map(c => `<td>${r[c] !== null && r[c] !== undefined ? r[c] : '<span class="text-muted">null</span>'}</td>`).join('')}</tr>`).join('');
+    } catch (e) {
+        console.error('Error cargando head:', e);
+    }
+}
+
+async function loadTailData() {
+    try {
+        const resp = await fetch('/api/dataset/tail?n=10');
+        const rows = await resp.json();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        
+        const cols = Object.keys(rows[0]);
+        const thead = document.getElementById('tailTableHead');
+        const tbody = document.getElementById('tailTableBody');
+        
+        thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+        tbody.innerHTML = rows.map(r => `<tr>${cols.map(c => `<td>${r[c] !== null && r[c] !== undefined ? r[c] : '<span class="text-muted">null</span>'}</td>`).join('')}</tr>`).join('');
+    } catch (e) {
+        console.error('Error cargando tail:', e);
+    }
+}
+
+async function loadStatsData() {
+    try {
+        const resp = await fetch('/api/dataset/stats');
+        const stats = await resp.json();
+        if (!Array.isArray(stats)) return;
+        
+        const tbody = document.getElementById('statsTableBody');
+        tbody.innerHTML = stats.map(s => `
+            <tr>
+                <td class="fw-bold text-light">${s.name}</td>
+                <td><span class="badge bg-secondary">${s.dtype}</span></td>
+                <td>${s.n_null.toLocaleString()}</td>
+                <td>${s.null_pct}%</td>
+                <td>${s.n_unique.toLocaleString()}</td>
+                <td>${s.min !== null && s.min !== undefined ? s.min.toFixed(2) : '—'}</td>
+                <td>${s.max !== null && s.max !== undefined ? s.max.toFixed(2) : '—'}</td>
+                <td>${s.mean !== null && s.mean !== undefined ? s.mean.toFixed(4) : '—'}</td>
+                <td>${s.std !== null && s.std !== undefined ? s.std.toFixed(4) : '—'}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        console.error('Error cargando stats:', e);
+    }
+}
+
+async function loadSuggestions() {
+    try {
+        const resp = await fetch('/api/dataset/suggestions');
+        const data = await resp.json();
+        
+        const discDiv = document.getElementById('discreteSuggestionsList');
+        const contDiv = document.getElementById('continuousSuggestionsList');
+        
+        discDiv.innerHTML = '';
+        if (data.discrete && data.discrete.length > 0) {
+            data.discrete.forEach(col => {
+                const isSelected = col === data.current_discrete;
+                discDiv.innerHTML += `
+                    <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark border ${isSelected ? 'border-warning' : 'border-secondary'}">
+                        <div>
+                            <strong class="text-light">${col}</strong>
+                            ${isSelected ? '<span class="badge bg-warning text-dark ms-2">Seleccionada</span>' : ''}
+                        </div>
+                        <button class="btn btn-sm ${isSelected ? 'btn-outline-warning' : 'btn-outline-light'}" onclick="selectVariable('${col}', 'discrete')">
+                            ${isSelected ? 'Activa' : 'Seleccionar'}
+                        </button>
+                    </div>
+                `;
+            });
+        } else {
+            discDiv.innerHTML = '<p class="text-muted small">No se detectaron columnas con cardinalidad discreta evidente.</p>';
+        }
+        
+        contDiv.innerHTML = '';
+        if (data.continuous && data.continuous.length > 0) {
+            data.continuous.forEach(col => {
+                const isSelected = col === data.current_continuous;
+                contDiv.innerHTML += `
+                    <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark border ${isSelected ? 'border-info' : 'border-secondary'}">
+                        <div>
+                            <strong class="text-light">${col}</strong>
+                            ${isSelected ? '<span class="badge bg-info text-dark ms-2">Seleccionada</span>' : ''}
+                        </div>
+                        <button class="btn btn-sm ${isSelected ? 'btn-outline-info' : 'btn-outline-light'}" onclick="selectVariable('${col}', 'continuous')">
+                            ${isSelected ? 'Activa' : 'Seleccionar'}
+                        </button>
+                    </div>
+                `;
+            });
+        } else {
+            contDiv.innerHTML = '<p class="text-muted small">No se detectaron columnas continuas con cardinalidad suficiente.</p>';
+        }
+    } catch (e) {
+        console.error('Error cargando sugerencias:', e);
+    }
+}
+
+async function selectVariable(colName, type) {
+    const payload = {};
+    if (type === 'discrete') payload.discrete = colName;
+    if (type === 'continuous') payload.continuous = colName;
+    
+    try {
+        const resp = await fetch('/api/variables/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const res = await resp.json();
+        if (res.success) {
+            showNotification(`Variable ${type === 'discrete' ? 'discreta' : 'continua'} fijada en '${colName}'.`, 'success');
+            loadSuggestions();
+        }
+    } catch (e) {
+        showNotification('Error al seleccionar variable: ' + e.message, 'danger');
+    }
+}
+
+async function downloadFromKaggle() {
+    if (!confirm('¿Desea iniciar la descarga automatizada del dataset de CS:GO desde KaggleHub?')) return;
+    const btn = document.getElementById('btnKaggle');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Descargando...';
+    
+    try {
+        const resp = await fetch('/api/dataset/download', { method: 'POST' });
+        const res = await resp.json();
+        if (res.success) {
+            showNotification('Dataset sincronizado desde KaggleHub con éxito.', 'success');
+            initDatasetExplorer();
+        } else {
+            showNotification('Error KaggleHub: ' + res.error, 'danger');
+        }
+    } catch (e) {
+        showNotification('Error de red: ' + e.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Sincronizar KaggleHub';
+    }
+}
+
+function showLoading(show) {
+    document.getElementById('datasetLoading').style.display = show ? 'block' : 'none';
+    document.getElementById('datasetContent').style.display = show ? 'none' : 'block';
+}
+
+document.getElementById('tail-tab').addEventListener('shown.bs.tab', loadTailData);
+document.addEventListener('DOMContentLoaded', initDatasetExplorer);
+</script>
+{% endblock %}
