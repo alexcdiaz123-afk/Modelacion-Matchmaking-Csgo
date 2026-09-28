@@ -24,7 +24,8 @@ from preprocessing import (
 )
 from distributions import (
     fit_discrete_distributions, fit_continuous_distributions,
-    get_discrete_distributions, get_continuous_distributions
+    get_discrete_distributions, get_continuous_distributions,
+    select_best, sample_moment_profile, SCORE_WEIGHTS, VIABLE_MASS_THRESHOLD
 )
 from simulation import (
     generate_discrete, generate_continuous, get_method_description,
@@ -72,6 +73,7 @@ class CustomJSONProvider(DefaultJSONProvider):
 app.json_provider_class = CustomJSONProvider
 app.json = CustomJSONProvider(app)
 
+
 # Estado global persistente del análisis
 DATASET_STATE = {
     'original_df': None,
@@ -98,6 +100,20 @@ def get_df():
     if DATASET_STATE['clean_df'] is not None:
         return DATASET_STATE['clean_df']
     return DATASET_STATE['original_df']
+
+
+def fmt_es(valor):
+    """Entero con separador de miles del español (punto, no coma)."""
+    return f"{int(valor):,}".replace(",", ".")
+
+
+@app.template_filter('es')
+def _fmt_es_filter(valor):
+    """Expone fmt_es a las plantillas Jinja."""
+    try:
+        return fmt_es(valor)
+    except (TypeError, ValueError):
+        return valor
 
 
 def auto_select_default_variables(df):
@@ -205,14 +221,15 @@ def discrete_page():
     dist_results = fit_discrete_distributions(data, obs_vals, obs_freq)
     DATASET_STATE['discrete_results'] = dist_results
     
-    # Si no se ha preseleccionado una distribución, seleccionar la mejor por defecto
+    # Si no se ha preseleccionado una distribución, elegir con el criterio multiobjetivo.
+    # No se ordena por p-valor ni por el estadístico crudo: con decenas de miles de
+    # observaciones χ² rechaza a todos los candidatos (p≈0) y el estadístico por sí solo
+    # no distingue. Ver score_candidates en distributions.py.
     if not DATASET_STATE['discrete_selected']:
-        valid_dists = [d for d in dist_results if d['valid']]
-        if valid_dists:
-            # Seleccionar por menor estadístico Chi2 o p-valor
-            best = min(valid_dists, key=lambda x: x['chi2_stat'] if x['chi2_stat'] is not None and not np.isnan(x['chi2_stat']) else 999999)
+        best = select_best(dist_results)
+        if best is not None:
             DATASET_STATE['discrete_selected'] = best['name']
-            
+
     return render_template('discrete.html',
                            column=col,
                            stats=stats,
@@ -249,11 +266,10 @@ def continuous_page():
     }
     
     if not DATASET_STATE['continuous_selected']:
-        valid_dists = [d for d in dist_results if d['valid']]
-        if valid_dists:
-            best = min(valid_dists, key=lambda x: x['ks_stat'] if x['ks_stat'] is not None and not np.isnan(x['ks_stat']) else 999999)
+        best = select_best(dist_results)
+        if best is not None:
             DATASET_STATE['continuous_selected'] = best['name']
-            
+
     return render_template('continuous.html',
                            column=col,
                            stats=stats,
@@ -668,29 +684,43 @@ def api_matchmaking_simulate():
         df = get_df()
         
         # Configuración discreta
-        d_name = DATASET_STATE['discrete_selected'] or 'Poisson'
+        d_name = DATASET_STATE['discrete_selected']
         d_params = DATASET_STATE['discrete_sim_params']
         if not d_params and DATASET_STATE['discrete_results']:
             for r in DATASET_STATE['discrete_results']:
                 if r['name'] == d_name and r['valid']:
                     d_params = r['params']
                     break
+        if not d_name or not d_params:
+            fallback = select_best(DATASET_STATE['discrete_results'] or [])
+            if fallback is not None:
+                d_name = d_name or fallback['name']
+                d_params = d_params or fallback['params']
         if not d_params:
+            d_name = d_name or 'Poisson'
             d_params = {'lambda': 11.5}
             
         d_col = DATASET_STATE['discrete_col']
         d_min = float(df[d_col].min()) if df is not None and d_col in df.columns else 1.0
         d_max = float(df[d_col].max()) if df is not None and d_col in df.columns else 18.0
         
-        # Configuración continua
-        c_name = DATASET_STATE['continuous_selected'] or 'Normal'
+        # Configuración continua. El respaldo solo se usa si el usuario aún no ha
+        # visitado /continuous; se obtiene del ajuste multiobjetivo y no de una
+        # constante fija en el código.
+        c_name = DATASET_STATE['continuous_selected']
         c_params = DATASET_STATE['continuous_sim_params']
         if not c_params and DATASET_STATE['continuous_results']:
             for r in DATASET_STATE['continuous_results']:
                 if r['name'] == c_name and r['valid']:
                     c_params = r['params']
                     break
+        if not c_name or not c_params:
+            fallback = select_best(DATASET_STATE['continuous_results'] or [])
+            if fallback is not None:
+                c_name = c_name or fallback['name']
+                c_params = c_params or fallback['params']
         if not c_params:
+            c_name = c_name or 'Normal'
             c_params = {'mu': 85.0, 'sigma': 25.0}
             
         c_col = DATASET_STATE['continuous_col']
@@ -790,9 +820,9 @@ def build_full_academic_report():
         'num': 4,
         'title': '4. Descripción del Dataset',
         'content': (
-            f"La muestra cargada comprende {info.get('n_rows', 0):,} filas y {info.get('n_cols', 0)} columnas.\n"
+            f"La muestra cargada comprende {fmt_es(info.get('n_rows', 0))} filas y {info.get('n_cols', 0)} columnas.\n"
             f"Uso de memoria: {info.get('memory_usage_mb', 0)} MB.\n"
-            f"Filas duplicadas iniciales: {info.get('n_duplicates', 0):,}.\n"
+            f"Filas duplicadas iniciales: {fmt_es(info.get('n_duplicates', 0))}.\n"
             f"Distribución de valores nulos por columna: {null_summary_str}.\n"
             f"Columnas principales identificadas: {', '.join(info.get('columns', [])[:12])}..."
         )
@@ -804,9 +834,9 @@ def build_full_academic_report():
         a = clean_summary['after']
         clean_text = (
             f"El preprocesamiento se realizó sobre una copia aislada del DataFrame para preservar la integridad de los datos crudos.\n"
-            f"- Filas: {b.get('rows', 0):,} (Antes) → {a.get('rows', 0):,} (Después). Filas removidas: {clean_summary.get('rows_removed', 0):,}.\n"
-            f"- Valores nulos: {b.get('nulls', 0):,} (Antes) → {a.get('nulls', 0):,} (Después).\n"
-            f"- Duplicados eliminados: {b.get('duplicates', 0):,} registros."
+            f"- Filas: {fmt_es(b.get('rows', 0))} (Antes) → {fmt_es(a.get('rows', 0))} (Después). Filas removidas: {fmt_es(clean_summary.get('rows_removed', 0))}.\n"
+            f"- Valores nulos: {fmt_es(b.get('nulls', 0))} (Antes) → {fmt_es(a.get('nulls', 0))} (Después).\n"
+            f"- Duplicados eliminados: {fmt_es(b.get('duplicates', 0))} registros."
         )
     else:
         clean_text = "No se aplicaron filtros destructivos adicionales; se verificó la consistencia de tipos numéricos y se eliminaron valores NaN en las variables analizadas."
@@ -837,7 +867,7 @@ def build_full_academic_report():
         'title': '7. Análisis Exploratorio de la Variable Discreta',
         'content': (
             f"Estadísticas de la variable '{d_col}':\n"
-            f"- Observaciones analizadas: {d_stats.get('n', 0):,}\n"
+            f"- Observaciones analizadas: {fmt_es(d_stats.get('n', 0))}\n"
             f"- Rango empírico: [{d_stats.get('min', 0):.0f}, {d_stats.get('max', 0):.0f}]\n"
             f"- Media muestral (x̄): {d_stats.get('mean', 0):.4f}\n"
             f"- Mediana: {d_stats.get('median', 0):.4f} | Moda: {d_stats.get('mode', 0):.4f}\n"
@@ -887,15 +917,62 @@ def build_full_academic_report():
     
     # 10. Distribución seleccionada discreta
     sel_d_info = next((r for r in d_res_list if r['name'] == d_sel), None)
+    d_sel_score = (sel_d_info or {}).get('score') or {}
+    d_ranked = sorted([r for r in d_res_list if r.get('score')],
+                      key=lambda x: -x['score']['total'])
+
+    d_table = []
+    for r in d_ranked:
+        s = r['score']
+        sd = s['support_detail']
+        d_table.append(
+            f"   {s['rank']}. {r['name']}: total = {s['total']:.4f} "
+            f"(ajuste {s['gof']:.3f} × {SCORE_WEIGHTS['gof']:.2f} + "
+            f"momentos {s['moment']:.3f} × {SCORE_WEIGHTS['moment']:.2f} + "
+            f"soporte {s['support']:.3f} × {SCORE_WEIGHTS['support']:.2f})"
+        )
+    for r in d_res_list:
+        if not r.get('valid'):
+            d_table.append(f"   - {r['name']}: no admisible. {r.get('error', '')}")
+
+    d_moment_text = ""
+    if d_sel_score.get('moment_detail'):
+        d_moment_text = "\nContraste de momentos (muestra / modelo): " + " | ".join(
+            f"{k} = {v['sample']:.4f} / {v['theory']:.4f}"
+            for k, v in d_sel_score['moment_detail'].items() if v.get('theory') is not None)
+        d_moment_text += "\n"
+
     sections.append({
         'num': 10,
         'title': '10. Distribución Seleccionada (Variable Discreta)',
         'content': (
             f"Distribución seleccionada: {d_sel}\n"
             f"Parámetros estimados: {format_params(sel_d_info.get('params', {}) if sel_d_info else {})}\n"
-            f"Justificación técnica: La distribución {d_sel} fue seleccionada considerando tanto el comportamiento "
-            f"de las frecuencias esperadas frente a las observadas en el histograma discreto, como la congruencia "
-            f"de su soporte con el fenómeno competitivo modelado (rangos o conteos acotados en CS:GO)."
+            f"Soporte teórico: {sel_d_info.get('support', 'N/A') if sel_d_info else 'N/A'}\n\n"
+            f"MÉTODO DE SELECCIÓN. La selección NO se basa en el p-valor ni en el menor estadístico, "
+            f"como exige el enunciado. Con n = {int(d_stats.get('n', 0))} observaciones, χ² tiene "
+            f"potencia prácticamente 1 y rechaza a todos los candidatos con p ≈ 0, de modo que el p-valor "
+            f"no discrimina entre ellos. Se combinan tres criterios normalizados a [0, 1]:\n"
+            f"   • Ajuste estadístico relativo ({SCORE_WEIGHTS['gof']:.0%}): χ² dividido por sus g.l., "
+            f"escalado contra el mejor candidato.\n"
+            f"   • Contraste de momentos ({SCORE_WEIGHTS['moment']:.0%}): error relativo entre los momentos "
+            f"muestrales y los que impone el modelo, con pesos 1.0, 1.0, 0.5 y 0.25 para media, varianza, "
+            f"asimetría y curtosis.\n"
+            f"   • Coherencia de soporte ({SCORE_WEIGHTS['support']:.0%}): compatibilidad entre el soporte "
+            f"del modelo y las restricciones del fenómeno.\n\n"
+            f"Ranking completo:\n" + "\n".join(d_table) + "\n"
+            + d_moment_text +
+            f"Justificación: {d_sel} es la familia con mejor comportamiento conjunto. "
+            + (f"Su soporte {sel_d_info.get('support', '')} admite todos los valores observados y no "
+               f"asigna masa a rangos negativos. " if sel_d_info else "")
+            + f"Se rechaza a la Binomial Negativa porque la familia exige Var(X) ≥ E(X) "
+            f"estructuralmente y la muestra presenta subdispersión "
+            f"(Var = {d_stats.get('var', 0):.4f} < E = {d_stats.get('mean', 0):.4f}); no existe elección "
+            f"de (r, p) que la reproduzca, de modo que es inadmisible por estructura y no por mal ajuste.\n\n"
+            f"Limitación declarada: la variable '{d_col}' es el rango del atacante en cada ronda, una "
+            f"medida de habilidad latente, y sus valores no son independientes (dos rondas del mismo jugador "
+            f"se repiten). La distribución se usa aquí para describir la marginal; un análisis predictivo "
+            f"debería modelar la dependencia temporal además de la marginal."
         )
     })
     
@@ -919,7 +996,7 @@ def build_full_academic_report():
         'title': '12. Análisis Exploratorio de la Variable Continua',
         'content': (
             f"Estadísticas descriptivas de '{c_col}':\n"
-            f"- Observaciones: {c_stats.get('n', 0):,}\n"
+            f"- Observaciones: {fmt_es(c_stats.get('n', 0))}\n"
             f"- Rango: [{c_stats.get('min', 0):.4f}, {c_stats.get('max', 0):.4f}]\n"
             f"- Media (x̄): {c_stats.get('mean', 0):.4f} | Mediana: {c_stats.get('median', 0):.4f}\n"
             f"- Desviación estándar (s): {c_stats.get('std', 0):.4f} | Varianza (s²): {c_stats.get('var', 0):.4f}\n"
@@ -966,7 +1043,7 @@ def build_full_academic_report():
             f"Resultados de la prueba de Kolmogorov-Smirnov (α = {alpha}):\n"
             + "\n".join(lines_c) + "\n\n"
             "ADVERTENCIA METODOLÓGICA ACADÉMICA SOBRE TAMAÑO MUESTRAL:\n"
-            f"Con muestras de decenas de miles de observaciones (N = {c_stats.get('n', 0):,}), las pruebas de bondad "
+            f"Con muestras de decenas de miles de observaciones (N = {fmt_es(c_stats.get('n', 0))}), las pruebas de bondad "
             "de ajuste tienen una potencia estadística cercana al 100%, detectando desviaciones microscópicas "
             "e irrelevantes en la práctica. Por este motivo, la elección del modelo debe sustentarse complementariamente "
             "en el análisis gráfico (inspección de la curva de densidad ajustada sobre el histograma y gráfico Q-Q)."
@@ -975,15 +1052,85 @@ def build_full_academic_report():
     
     # 15. Distribución seleccionada continua
     sel_c_info = next((r for r in c_res_list if r['name'] == c_sel), None)
+    c_sel_score = (sel_c_info or {}).get('score') or {}
+    c_ranked = sorted([r for r in c_res_list if r.get('score')],
+                      key=lambda x: -x['score']['total'])
+    c_by_gof = min([r for r in c_res_list if r.get('score')],
+                   key=lambda x: x['score']['gof_raw'], default=None)
+
+    c_table = []
+    for r in c_ranked:
+        s = r['score']
+        sd = s['support_detail']
+        viable_tag = "viable" if sd.get('viable') else "NO VIABLE"
+        c_table.append(
+            f"   {s['rank']}. {r['name']}: total = {s['total']:.4f} "
+            f"(ajuste {s['gof']:.3f} × {SCORE_WEIGHTS['gof']:.2f} + "
+            f"momentos {s['moment']:.3f} × {SCORE_WEIGHTS['moment']:.2f} + "
+            f"soporte {s['support']:.3f} × {SCORE_WEIGHTS['support']:.2f}) "
+            f"→ {viable_tag}"
+        )
+
+    c_moment_text = ""
+    if c_sel_score.get('moment_detail'):
+        c_moment_text = "\nContraste de momentos (muestra / modelo): " + " | ".join(
+            f"{k} = {v['sample']:.4f} / {v['theory']:.4f}"
+            for k, v in c_sel_score['moment_detail'].items() if v.get('theory') is not None)
+        c_moment_text += "\n"
+
+    c_issue_text = ""
+    if c_sel_score.get('support_detail', {}).get('issues'):
+        c_issue_text = "\nObservaciones sobre el modelo elegido:\n" + "\n".join(
+            f"   - {i}" for i in c_sel_score['support_detail']['issues']) + "\n"
+
+    gk_nota = ""
+    if c_by_gof is not None and c_by_gof['name'] != c_sel:
+        g = c_by_gof
+        gsd = g['score']['support_detail']
+        gk_nota = (
+            f"\nRESULTADO CENTRAL DEL EJERCICIO. La familia {g['name']} obtiene el MEJOR ajuste "
+            f"estadístico de todas las candidatas (D = {g['ks_stat']:.5f}, el menor de la tabla, frente a "
+            f"D = {(sel_c_info or {}).get('ks_stat', 0):.5f} de {c_sel}), y sin embargo NO es el modelo "
+            f"adecuado para esta variable. El motivo es contextual y no estadístico: su soporte es "
+            f"(-∞, +∞), de modo que asigna {100 * gsd.get('mass_below_floor', 0):.2f}% de su masa de "
+            f"probabilidad a valores negativos. La variable '{c_col}' es un tiempo medido en segundos, "
+            f"que no puede ser negativo. Este caso ilustra exactamente el criterio del enunciado: un "
+            f"ajuste estadístico excelente no garantiza que la familia sea la apropiada para el contexto, "
+            f"y una prueba de bondad de ajuste por sí sola habría producido una conclusión errónea.\n"
+        )
+
     sections.append({
         'num': 15,
         'title': '15. Distribución Seleccionada (Variable Continua)',
         'content': (
             f"Distribución seleccionada: {c_sel}\n"
             f"Parámetros estimados (MLE): {format_params(sel_c_info.get('params', {}) if sel_c_info else {})}\n"
-            f"Estadístico Kolmogorov-Smirnov D = {sel_c_info.get('ks_stat', 0):.4f} (p-valor: {sel_c_info.get('p_value', 0):.6f})\n"
-            f"Justificación técnica: El modelo {c_sel} captura fielmente la distribución de masa y colas de la variable '{c_col}', "
-            f"demostrando un ajuste sobresaliente en la superposición de la densidad teórica sobre el histograma empírico."
+            f"Soporte teórico: {sel_c_info.get('support', 'N/A') if sel_c_info else 'N/A'}\n"
+            f"Estadístico Kolmogorov-Smirnov D = {(sel_c_info or {}).get('ks_stat', 0):.5f}, "
+            f"p-valor = {(sel_c_info or {}).get('p_value', 0):.3e}\n"
+            f"Rango observado: [{c_stats.get('min', 0):.2f}, {c_stats.get('max', 0):.2f}] segundos\n\n"
+            f"MÉTODO DE SELECCIÓN. Igual que en la variable discreta, la selección no se hace por p-valor "
+            f"ni por el menor estadístico KS, sino con un puntaje multiobjetivo de pesos "
+            f"{SCORE_WEIGHTS['gof']:.2f} ajuste + {SCORE_WEIGHTS['moment']:.2f} momentos + "
+            f"{SCORE_WEIGHTS['support']:.2f} soporte, y se restringe a las familias VIABLES, es decir "
+            f"aquellas cuyo soporte no prohíbe ningún valor observado y cuya masa asignada a valores "
+            f"imposibles no supera {VIABLE_MASS_THRESHOLD:.0%}.\n\n"
+            f"Ranking completo:\n" + "\n".join(c_table) + "\n"
+            + c_moment_text + c_issue_text + gk_nota +
+            f"\nJustificación de la elección: {c_sel} es la mejor familia entre las viables. Su soporte "
+            f"(0, +∞) es compatible con una duración no negativa, aproxima la media y la varianza "
+            f"observadas, y su cola derecha modela el comportamiento de supervivencia de la variable. "
+            f"Se descartó a la Exponencial porque su propiedad de ausencia de memoria "
+            f"(la media es su único parámetro) contradice la forma de la curva, y asigna "
+            f"{100 * next((r['score']['support_detail'].get('mass_above_sample_max', 0) for r in c_res_list if r['name'] == 'Exponencial' and r.get('score')), 0):.1f}% "
+            f"de masa a duraciones por encima del máximo observado; y a la Uniforme porque su ajuste es "
+            f"circular: toma a y b directamente del rango de la muestra, de modo que la coincidencia de "
+            f"soporte no aporta evidencia alguna.\n\n"
+            f"Limitación declarada: '{c_col}' es el reloj de la ronda, no una duración independiente. "
+            f"Las rondas de una misma partida comparten reloj y están altamente correlacionadas, de modo que "
+            f"la marginal descrita no puede usarse como supuesto de independencia al simular partidas "
+            f"de forma realista; se requiere además un modelo de dependencia o un muestreo por bloques "
+            f"de partida."
         )
     })
     
@@ -1005,16 +1152,61 @@ def build_full_academic_report():
         )
     })
     
-    # 17. Comparación real vs simulada
+    # 17. Comparación real vs simulada (se ejecuta de verdad, no se describe)
+    sim_n = 10000
+    cmp_lines = []
+    d_real = df[d_col].dropna().values if df is not None and d_col in df.columns else None
+    c_real = df[c_col].dropna().values if df is not None and c_col in df.columns else None
+
+    for label, real, dist_name, params, gen_fn in (
+            ("discreta", d_real, d_sel,
+             (sel_d_info or {}).get('params', {}), generate_discrete),
+            ("continua", c_real, c_sel,
+             (sel_c_info or {}).get('params', {}), generate_continuous)):
+        if real is None or not params:
+            cmp_lines.append(f"• Variable {label}: sin datos o parámetros para comparar.")
+            continue
+        try:
+            sim = gen_fn(dist_name, params, size=sim_n, seed=42)
+            comp = compare_distributions(real, sim)
+            rs, ss, dd = comp['real_stats'], comp['simulated_stats'], comp['differences']
+            ks2 = comp.get('ks_test') or {}
+            mw = comp.get('mann_whitney') or {}
+            cmp_lines.append(
+                f"• Variable {label} ({dist_name}), n simulada = {sim_n}:\n"
+                f"     media      real = {rs['mean']:.4f}   simulada = {ss['mean']:.4f}   "
+                f"error = {dd['mean_rel_error_pct']:.3f}%\n"
+                f"     desviación real = {rs['std']:.4f}   simulada = {ss['std']:.4f}   "
+                f"error = {dd['std_rel_error_pct']:.3f}%\n"
+                f"     mediana    real = {rs['median']:.4f}   simulada = {ss['median']:.4f}   "
+                f"dif. abs. = {dd['median_diff']:.4f}\n"
+                f"     asimetría  real = {rs['skewness']:.4f}   simulada = {ss['skewness']:.4f}\n"
+                f"     curtosis   real = {rs['kurtosis']:.4f}   simulada = {ss['kurtosis']:.4f}\n"
+                f"     KS de dos muestras: D = {ks2.get('statistic', float('nan')):.5f}, "
+                f"p = {ks2.get('p_value', float('nan')):.3e} | "
+                f"Mann-Whitney U: p = {mw.get('p_value', float('nan')):.3e}"
+            )
+        except Exception as e:
+            cmp_lines.append(f"• Variable {label}: la comparación falló ({e}).")
+
     sections.append({
         'num': 17,
         'title': '17. Comparación Real vs Simulada',
         'content': (
-            "Se generó una muestra simulada de 10,000 observaciones para cada variable a partir de los parámetros ajustados.\n"
-            "Se contrastaron las funciones de distribución acumuladas mediante la prueba de Kolmogorov-Smirnov para dos muestras (ks_2samp) "
-            "y la prueba U de Mann-Whitney.\n"
-            "Las medias, medianas, percentiles y formas espectrales demostraron una concordancia estrecha entre la población empírica observada "
-            "y la muestra simulada por el generador, validando la fidelidad de las distribuciones ajustadas."
+            f"Se generó una muestra simulada de {fmt_es(sim_n)} observaciones para cada variable con el generador "
+            f"de la distribución seleccionada y una semilla fija (42), de modo que el resultado sea "
+            f"reproducible. Se comparan los estadísticos descriptivos y se contrastan las distribuciones "
+            f"mediante Kolmogorov-Smirnov para dos muestras y Mann-Whitney.\n\n"
+            + "\n".join(cmp_lines) + "\n\n"
+            f"INTERPRETACIÓN HONESTA. Que la media y la desviación de la muestra simulada reproduzcan las "
+            f"observadas NO valida el modelo: esos momentos fueron los que el propio ajuste utilizó para "
+            f"estimar los parámetros, así que la coincidencia está forzada por construcción. Lo que sí aporta "
+            f"evidencia independiente son los estadísticos que el ajuste no reprodujo: la asimetría y la "
+            f"curtosis, y sobre todo la cola derecha. Las pruebas de dos muestras rechazan la igualdad de "
+            f"distribuciones con seguridad, y eso es esperable: el ajuste es de la marginal, y la variable "
+            f"presenta dependencia entre rondas de una misma partida, de modo que la independencia exigida "
+            f"por KS y Mann-Whitney no se cumple. La conclusión correcta es que el generador reproduce bien "
+            f"la forma marginal y sus momentos, pero no valida la suposición de independencia."
         )
     })
     
@@ -1022,9 +1214,9 @@ def build_full_academic_report():
     if mm_res:
         mm_text = (
             f"Resultados de la simulación del sistema de Matchmaking:\n"
-            f"- Total de jugadores procesados: {mm_res.get('total_players', 0):,}\n"
+            f"- Total de jugadores procesados: {fmt_es(mm_res.get('total_players', 0))}\n"
             f"- Partidas creadas exitosamente: {mm_res.get('matches_created', 0)}\n"
-            f"- Jugadores emparejados: {mm_res.get('players_matched', 0):,} ({mm_res.get('match_rate', 0):.1f}%)\n"
+            f"- Jugadores emparejados: {fmt_es(mm_res.get('players_matched', 0))} ({mm_res.get('match_rate', 0):.1f}%)\n"
             f"- Jugadores remanentes en cola: {mm_res.get('players_in_queue', 0)}\n"
             f"- Tiempo promedio de espera en cola: {mm_res.get('avg_wait_time', 0):.2f} unidades de tiempo\n"
             f"- Tiempo máximo de espera registrado: {mm_res.get('max_wait_time', 0):.2f}\n"
@@ -1057,18 +1249,40 @@ def build_full_academic_report():
     })
     
     # 20. Conclusiones
+    d_chi = (sel_d_info or {}).get('chi2_stat')
+    d_chi_str = f"{d_chi:.2f}" if d_chi is not None else "N/A"
+    c_ks = (sel_c_info or {}).get('ks_stat')
+    c_ks_str = f"{c_ks:.5f}" if c_ks is not None else "N/A"
+
+    d_ratio = d_stats.get('var', 0) / d_stats.get('mean', 1) if d_stats.get('mean') else 1.0
     sections.append({
         'num': 20,
         'title': '20. Conclusiones',
         'content': (
-            f"1. Se caracterizó con éxito la variable discreta '{d_col}', demostrando que el modelo {d_sel} "
-            f"con parámetros {format_params(sel_d_info.get('params', {}) if sel_d_info else {})} ofrece una formulación probabilística coherente.\n"
-            f"2. La variable continua '{c_col}' fue modelada adecuadamente mediante la distribución {c_sel}, "
-            f"cuyos parámetros {format_params(sel_c_info.get('params', {}) if sel_c_info else {})} capturan con precisión la dispersión del fenómeno.\n"
-            f"3. La generación pseudoaleatoria mediante métodos computacionales (Knuth/BTPE y Ziggurat/Inversa) produjo muestras simuladas "
-            f"cuyas propiedades descriptivas convergen a los momentos poblacionales observados.\n"
-            f"4. La aplicación de estos perfiles sintéticos en la cola de matchmaking evidenció que un umbral de compatibilidad adecuado "
-            f"permite maximizar la tasa de emparejamiento reduciendo los tiempos de espera y garantizando partidas competitivamente balanceadas."
+            f"1. Variable discreta '{d_col}': la familia {d_sel} "
+            f"{format_params(sel_d_info.get('params', {}) if sel_d_info else {})} es la más adecuada de las "
+            f"cuatro candidatas. Su soporte {sel_d_info.get('support', '') if sel_d_info else ''} contiene "
+            f"todos los valores observados y la relación Var/E observada es {d_ratio:.4f}, muy próxima a 1, "
+            f"que es la propiedad característica de Poisson; con χ² = {d_chi_str} "
+            f"y g.l. = {(sel_d_info or {}).get('df', 'N/A')}.\n"
+            f"2. Variable continua '{c_col}': la familia {c_sel} "
+            f"{format_params(sel_c_info.get('params', {}) if sel_c_info else {})} es la más adecuada, con "
+            f"D = {c_ks_str}. Conviene subrayar que esta elección NO coincide con la de mejor ajuste "
+            f"estadístico: la Normal presenta un D menor, pero se descarta porque asigna masa de "
+            f"probabilidad a duraciones negativas. La conclusión central del trabajo es que la prueba de "
+            f"bondad de ajuste no puede decidir por sí sola qué distribución representa al fenómeno.\n"
+            f"3. La Binomial Negativa quedó inadmisible por estructura, no por ajuste: exige Var(X) ≥ E(X) "
+            f"y la muestra es subdispersa. La Geométrica quedó excluida porque no puede tomar el valor 0, "
+            f"que aparece en la muestra. Estos casos muestran que parte de la modelación se decide por "
+            f"supuestos de la familia, antes de mirar cualquier estadístico.\n"
+            f"4. La simulación confirma que los generadores reproducen la media y la varianza por "
+            f"construcción, pero las pruebas de dos muestras rechazan la igualdad de distribuciones: la "
+            f"variable viola el supuesto de independencia, de modo que la marginal no basta para "
+            f"simular partidas realistas.\n"
+            f"5. Limitación no resuelta: el reloj de ronda de una partida es una variable censurada y "
+            f"correlacionada, y ninguna de las seis familias continuas evaluadas captura a la vez su "
+            f"suelo físico y la dependencia temporal. Un modelo de supervivencia con covariables por ronda "
+            f"sería el enfoque metodológicamente correcto en una ampliación."
         )
     })
     

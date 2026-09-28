@@ -6,34 +6,46 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-primary: #0B1020;
-    --bg-sidebar: #11182B;
-    --bg-card: #151F35;
-    --bg-card-secondary: #1B2742;
-    --bg-card-hover: #202E4B;
-    --border: #2A3856;
-    --border-light: #334155;
-    --text-primary: #F8FAFC;
-    --text-secondary: #AAB6CC;
-    --text-muted: #71809B;
-    --text-body: #DCE4F2;
-    --accent: #FF6B6B;
-    --accent-hover: #FF8585;
-    --accent-light: rgba(255, 107, 107, 0.12);
-    --blue: #4DA3FF;
-    --blue-light: rgba(77, 163, 255, 0.12);
-    --success: #35D07F;
-    --success-light: rgba(53, 208, 127, 0.12);
-    --warning: #F5B942;
-    --warning-light: rgba(245, 185, 66, 0.12);
-    --danger: #FF4D67;
-    --danger-light: rgba(255, 77, 103, 0.12);
+    /* ---- Superficies: espresso -> toasted bean ---- */
+    --bg-primary: #17100D;          /* espresso, casi negro calido */
+    --bg-sidebar: #1E1511;          /* ground coffee */
+    --bg-card: #271C16;             /* coffee card */
+    --bg-card-secondary: #32241C;   /* mocha */
+    --bg-card-hover: #3D2B21;       /* light roast */
+    --input-bg: #1A120E;            /* campos de formulario, mas oscuros que la card */
+
+    /* ---- Bordes ---- */
+    --border: #4A3527;
+    --border-light: #5D4331;
+
+    /* ---- Texto: crema y espuma ---- */
+    --text-primary: #F7F1E8;        /* crema */
+    --text-secondary: #CBB7A3;      /* leche de avena */
+    --text-muted: #A08B77;          /* cafe con leche */
+    --text-body: #E7DACA;
+
+    /* ---- Acento: caramelo y tueste ---- */
+    --accent: #C98A4B;              /* caramelo: texto, bordes, indicadores */
+    --accent-strong: #7A4A1E;       /* tueste oscuro: fondo de boton (AA con crema) */
+    --accent-hover: #96602C;        /* tueste medio: hover */
+    --accent-light: rgba(201, 138, 75, 0.14);
+
+    /* ---- Semanticos, armonizados en tonos calidos ---- */
+    --info: #7FA8A0;                /* matcha fria */
+    --info-light: rgba(127, 168, 160, 0.14);
+    --success: #7FA86A;             /* salvia */
+    --success-light: rgba(127, 168, 106, 0.14);
+    --warning: #D9A441;             /* ambar / ocre */
+    --warning-light: rgba(217, 164, 65, 0.14);
+    --danger: #D96A52;              /* terracota */
+    --danger-light: rgba(217, 106, 82, 0.14);
+
     --sidebar-width: 260px;
     --header-height: 80px;
     --radius: 12px;
     --radius-sm: 8px;
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.24);
     --transition: all 0.2s ease;
 }
 
@@ -289,7 +301,7 @@ body {
 }
 
 .stat-card.blue .stat-value {
-    color: var(--blue);
+    color: var(--info);
 }
 
 .stat-card.success .stat-value {
@@ -364,13 +376,13 @@ body {
 }
 
 .btn-primary {
-    background: var(--accent);
-    color: #FFFFFF;
+    background: var(--accent-strong);
+    color: var(--text-primary);
 }
 
 .btn-primary:hover {
     background: var(--accent-hover);
-    color: #FFFFFF;
+    color: var(--text-primary);
 }
 
 .btn-secondary {
@@ -386,12 +398,12 @@ body {
 
 .btn-success {
     background: var(--success);
-    color: #FFFFFF;
+    color: var(--text-primary);
 }
 
 .btn-success:hover {
-    background: #2EB872;
-    color: #FFFFFF;
+    background: #6D9459;
+    color: var(--text-primary);
 }
 
 /* ============================================
@@ -410,7 +422,7 @@ body {
 .form-select {
     width: 100%;
     padding: 10px 14px;
-    background: #0F172A;
+    background: var(--input-bg);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
@@ -470,7 +482,7 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
-    color: var(--blue);
+    color: var(--info);
 }
 
 .flow-step-icon svg {
@@ -517,8 +529,8 @@ body {
 }
 
 .distinction-box.simulated {
-    background: var(--blue-light);
-    border: 1px solid var(--blue);
+    background: var(--info-light);
+    border: 1px solid var(--info);
 }
 
 .distinction-box h6 {
@@ -536,7 +548,7 @@ body {
 }
 
 .distinction-box.simulated h6 {
-    color: var(--blue);
+    color: var(--info);
 }
 
 .distinction-box p {
@@ -604,7 +616,7 @@ body {
 .player-badge svg {
     width: 14px;
     height: 14px;
-    color: var(--blue);
+    color: var(--info);
 }
 
 /* ============================================
@@ -649,8 +661,8 @@ body {
 }
 
 .alert-info {
-    background: var(--blue-light);
-    border-color: var(--blue);
+    background: var(--info-light);
+    border-color: var(--info);
     color: var(--text-body);
 }
 
@@ -701,8 +713,8 @@ body {
 }
 
 .badge-info {
-    background: var(--blue-light);
-    color: var(--blue);
+    background: var(--info-light);
+    color: var(--info);
 }
 
 /* ============================================
@@ -889,21 +901,21 @@ body {
 }
 
 .theory-tabs .nav-link.active {
-    color: #fff;
-    background: linear-gradient(135deg, rgba(77, 163, 255, 0.25), rgba(77, 163, 255, 0.08));
-    border-color: var(--blue);
+    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(127, 168, 160, 0.25), rgba(127, 168, 160, 0.08));
+    border-color: var(--info);
     font-weight: 600;
-    box-shadow: 0 0 12px rgba(77, 163, 255, 0.2);
+    box-shadow: 0 0 12px rgba(127, 168, 160, 0.2);
 }
 
 .formula-card {
-    background: #0d1527;
-    border: 1px solid #233354;
-    border-left: 4px solid var(--blue);
+    background: #1C130F;
+    border: 1px solid #4A3527;
+    border-left: 4px solid var(--info);
     border-radius: var(--radius-sm);
     padding: 18px 22px;
     margin: 16px 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
 }
 
 .formula-card.accent {
@@ -931,10 +943,10 @@ body {
 .formula-equation {
     font-size: 1.15rem;
     padding: 12px 16px;
-    background: rgba(11, 16, 32, 0.7);
+    background: rgba(23, 16, 13, 0.7);
     border-radius: 6px;
     overflow-x: auto;
-    color: #e2e8f0;
+    color: var(--text-body);
     text-align: center;
     margin-bottom: 10px;
 }
@@ -951,41 +963,41 @@ body {
     padding: 2px 7px;
     font-size: 0.8rem;
     font-family: 'JetBrains Mono', monospace;
-    background: rgba(77, 163, 255, 0.12);
-    color: var(--blue);
-    border: 1px solid rgba(77, 163, 255, 0.25);
+    background: var(--info-light);
+    color: var(--info);
+    border: 1px solid rgba(127, 168, 160, 0.25);
     border-radius: 4px;
     margin: 2px;
 }
 
 .param-badge.success {
-    background: rgba(53, 208, 127, 0.12);
+    background: var(--success-light);
     color: var(--success);
-    border-color: rgba(53, 208, 127, 0.25);
+    border-color: rgba(127, 168, 106, 0.25);
 }
 
 .param-badge.warning {
-    background: rgba(245, 185, 66, 0.12);
+    background: var(--warning-light);
     color: var(--warning);
-    border-color: rgba(245, 185, 66, 0.25);
+    border-color: rgba(217, 164, 65, 0.25);
 }
 
 .academic-note {
-    background: rgba(77, 163, 255, 0.06);
-    border: 1px solid rgba(77, 163, 255, 0.2);
+    background: var(--info-light);
+    border: 1px solid rgba(127, 168, 160, 0.2);
     border-radius: var(--radius-sm);
     padding: 16px 20px;
     margin: 20px 0;
 }
 
 .academic-note.warning {
-    background: rgba(245, 185, 66, 0.07);
-    border-color: rgba(245, 185, 66, 0.25);
+    background: var(--warning-light);
+    border-color: rgba(217, 164, 65, 0.25);
 }
 
 .academic-note.danger {
-    background: rgba(255, 77, 103, 0.07);
-    border-color: rgba(255, 77, 103, 0.25);
+    background: var(--danger-light);
+    border-color: rgba(217, 106, 82, 0.25);
 }
 
 .theory-table th {

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Limpieza de Datos — CS:GO Matchmaking{% endblock %}
 
@@ -37,10 +37,10 @@
             <div class="card-body">
                 <table class="table table-dark table-borderless mb-0">
                     <tbody>
-                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-light text-end" id="beforeRows">{{ "{:,}".format(summary.before.rows) }}</td></tr>
+                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-light text-end" id="beforeRows">{{ summary.before.rows|es }}</td></tr>
                         <tr><td class="text-muted">Total de Columnas:</td><td class="fw-bold text-light text-end" id="beforeCols">{{ summary.before.cols }}</td></tr>
-                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-light text-end" id="beforeNulls">{{ "{:,}".format(summary.before.nulls) }}</td></tr>
-                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-light text-end" id="beforeDuplicates">{{ "{:,}".format(summary.before.duplicates) }}</td></tr>
+                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-light text-end" id="beforeNulls">{{ summary.before.nulls|es }}</td></tr>
+                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-light text-end" id="beforeDuplicates">{{ summary.before.duplicates|es }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -56,10 +56,10 @@
             <div class="card-body">
                 <table class="table table-dark table-borderless mb-0">
                     <tbody>
-                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-success text-end" id="afterRows">{{ "{:,}".format(summary.after.rows) }}</td></tr>
+                        <tr><td class="text-muted">Total de Filas:</td><td class="fw-bold text-success text-end" id="afterRows">{{ summary.after.rows|es }}</td></tr>
                         <tr><td class="text-muted">Total de Columnas:</td><td class="fw-bold text-success text-end" id="afterCols">{{ summary.after.cols }}</td></tr>
-                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-success text-end" id="afterNulls">{{ "{:,}".format(summary.after.nulls) }}</td></tr>
-                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-success text-end" id="afterDuplicates">{{ "{:,}".format(summary.after.duplicates) }}</td></tr>
+                        <tr><td class="text-muted">Valores Nulos Totales:</td><td class="fw-bold text-success text-end" id="afterNulls">{{ summary.after.nulls|es }}</td></tr>
+                        <tr><td class="text-muted">Filas Duplicadas:</td><td class="fw-bold text-success text-end" id="afterDuplicates">{{ summary.after.duplicates|es }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -68,7 +68,7 @@
 </div>
 
 <!-- Formulario de Operaciones de Limpieza -->
-<div class="card mb-4" style="border-left: 4px solid var(--blue);">
+<div class="card mb-4" style="border-left: 4px solid var(--info);">
     <div class="card-header bg-dark">
         <h5 class="mb-0 text-info">Configuración de Operaciones de Limpieza</h5>
     </div>

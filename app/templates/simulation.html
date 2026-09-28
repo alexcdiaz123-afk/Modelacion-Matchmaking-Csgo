@@ -131,7 +131,7 @@
     <!-- ========================================== -->
     <!-- VARIABLE CONTINUA: REAL VS SIMULADA -->
     <!-- ========================================== -->
-    <div class="card mb-4" style="border-top: 3px solid var(--blue);">
+    <div class="card mb-4" style="border-top: 3px solid var(--info);">
         <div class="card-header bg-dark d-flex justify-content-between align-items-center">
             <h5 class="mb-0 text-info">2. Variable Continua: Datos Reales vs Simulación</h5>
             <span class="badge bg-info text-dark" id="continuousBadge">—</span>
@@ -223,11 +223,20 @@ async function runGeneration() {
         document.getElementById('simLoading').style.display = 'none';
         btn.disabled = false;
         
-        if (data.success && data.results) {
+        // Un objeto vacío es truthy en JavaScript, así que `data.results` por sí solo
+        // no basta: hay que comprobar además que trae alguna variable con datos.
+        const results = data.results || {};
+        const hasDiscrete = results.discrete && (results.discrete.simulated_sample || []).length > 0;
+        const hasContinuous = results.continuous && (results.continuous.simulated_sample || []).length > 0;
+
+        if (data.success && (hasDiscrete || hasContinuous)) {
             document.getElementById('simResultsContainer').style.display = 'block';
-            if (data.results.discrete) renderDiscreteSim(data.results.discrete);
-            if (data.results.continuous) renderContinuousSim(data.results.continuous);
+            if (hasDiscrete) renderDiscreteSim(results.discrete);
+            if (hasContinuous) renderContinuousSim(results.continuous);
             showNotification('Generación completada y contrastada con datos reales.', 'success');
+        } else if (data.success) {
+            document.getElementById('simResultsContainer').style.display = 'none';
+            showNotification('No se generaron observaciones. Revise que haya seleccionado una distribución y que la variable tenga datos.', 'warning');
         } else {
             showNotification('Error en la simulación: ' + (data.error || 'Error desconocido'), 'danger');
         }
@@ -261,8 +270,8 @@ function renderDiscreteSim(d) {
     ], {
         ...plotlyDarkLayout,
         barmode: 'overlay',
-        xaxis: { title: 'Valor Discreto (k)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Frecuencia de Muestra', gridcolor: '#2A3856' },
+        xaxis: { title: 'Valor Discreto (k)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Frecuencia de Muestra', gridcolor: '#4A3527' },
         legend: { orientation: 'h', y: 1.15 },
         margin: { t: 30, r: 20, l: 50, b: 40 }
     });
@@ -297,8 +306,8 @@ function renderDiscreteSim(d) {
     ], {
         ...plotlyDarkLayout,
         barmode: 'group',
-        xaxis: { title: 'Categoría (k)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Probabilidad Empírica', gridcolor: '#2A3856' },
+        xaxis: { title: 'Categoría (k)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Probabilidad Empírica', gridcolor: '#4A3527' },
         legend: { orientation: 'h', y: 1.15 },
         margin: { t: 30, r: 20, l: 50, b: 40 }
     });
@@ -340,8 +349,8 @@ function renderContinuousSim(c) {
     ], {
         ...plotlyDarkLayout,
         barmode: 'overlay',
-        xaxis: { title: 'Escala Continua', gridcolor: '#2A3856' },
-        yaxis: { title: 'Densidad f(x)', gridcolor: '#2A3856' },
+        xaxis: { title: 'Escala Continua', gridcolor: '#4A3527' },
+        yaxis: { title: 'Densidad f(x)', gridcolor: '#4A3527' },
         legend: { orientation: 'h', y: 1.15 },
         margin: { t: 30, r: 20, l: 50, b: 40 }
     });
@@ -364,7 +373,7 @@ function renderContinuousSim(c) {
         }
     ], {
         ...plotlyDarkLayout,
-        yaxis: { title: 'Valores', gridcolor: '#2A3856' },
+        yaxis: { title: 'Valores', gridcolor: '#4A3527' },
         margin: { t: 20, r: 20, l: 50, b: 40 }
     });
 

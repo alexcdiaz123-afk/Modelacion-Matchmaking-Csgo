@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Variable Aleatoria Discreta — CS:GO Matchmaking{% endblock %}
 
@@ -21,7 +21,7 @@
 <!-- Estadísticas Descriptivas de la Variable Discreta -->
 <div class="stats-grid mb-4">
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(stats.n) }}</div>
+        <div class="stat-value">{{ stats.n|es }}</div>
         <div class="stat-label">Observaciones (N)</div>
     </div>
     <div class="stat-card">
@@ -130,7 +130,7 @@
                     {% for row in freq_table %}
                     <tr>
                         <td class="fw-bold text-light">{{ row.value }}</td>
-                        <td>{{ "{:,}".format(row.frequency) }}</td>
+                        <td>{{ row.frequency|es }}</td>
                         <td>{{ "{:.6f}".format(row.relative_freq) }}</td>
                         <td>{{ "{:.2f}".format(row.percentage) }}%</td>
                         <td>{{ "{:.2f}".format(row.cum_percentage) }}%</td>
@@ -170,9 +170,11 @@
                     <tr>
                         <th>Distribución</th>
                         <th>Parámetros Estimados</th>
+                        <th>Soporte</th>
                         <th>Estadístico χ²</th>
                         <th>Grados Libertad</th>
                         <th>p-valor</th>
+                        <th>Puntaje multiobjetivo</th>
                         <th>Resultado Formal</th>
                         <th>Acción</th>
                     </tr>
@@ -193,15 +195,56 @@
                                 <span class="text-danger small">{{ dist.error or 'Incompatible' }}</span>
                             {% endif %}
                         </td>
+                        <td class="small">{{ dist.support or '—' }}</td>
                         <td>{{ "{:.4f}".format(dist.chi2_stat) if dist.chi2_stat is not none else '—' }}</td>
                         <td>{{ dist.df if dist.df is not none else '—' }}</td>
                         <td>
                             {% if dist.p_value is not none %}
                                 <strong class="{% if dist.p_value >= alpha %}text-success{% else %}text-danger{% endif %}">
-                                    {{ "{:.6f}".format(dist.p_value) }}
+                                    {{ "{:.3e}".format(dist.p_value) }}
                                 </strong>
                             {% else %}
                                 —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.score %}
+                            <div class="small mb-1">
+                                <span class="text-info">total</span> <strong>{{ "%.4f"|format(dist.score.total) }}</strong>
+                                <span class="text-muted">#{{ dist.score.rank }}</span>
+                            </div>
+                            <div class="progress" style="height: 6px;" title="Ajuste">
+                                <div class="progress-bar bg-info" style="width: {{ (dist.score.gof * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="progress mt-1" style="height: 6px;" title="Momentos">
+                                <div class="progress-bar bg-warning" style="width: {{ (dist.score.moment * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="progress mt-1" style="height: 6px;" title="Soporte">
+                                <div class="progress-bar bg-success" style="width: {{ (dist.score.support * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="small mt-1">
+                                {% if dist.score.support_detail.viable %}
+                                    <span class="badge bg-success">viable</span>
+                                {% else %}
+                                    <span class="badge bg-danger">no viable</span>
+                                {% endif %}
+                            </div>
+                            {% if dist.score.moment_detail %}
+                            <div class="small text-muted mt-1">
+                                {% for k, v in dist.score.moment_detail.items() %}
+                                {% if v.theory is not none and v.sample is not none %}
+                                {{ k }}: {{ "%.3f"|format(v.sample) }}/{{ "%.3f"|format(v.theory) }}
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if dist.score.support_detail.issues %}
+                            <ul class="small text-warning mt-1 mb-0 ps-3">
+                                {% for issue in dist.score.support_detail.issues %}<li>{{ issue }}</li>{% endfor %}
+                            </ul>
+                            {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
                             {% endif %}
                         </td>
                         <td>
@@ -256,8 +299,8 @@ function renderCharts() {
         name: 'Frecuencia Absoluta'
     }], {
         ...plotlyDarkLayout,
-        xaxis: { title: 'Valor (k)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Frecuencia Observada (Oi)', gridcolor: '#2A3856' },
+        xaxis: { title: 'Valor (k)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Frecuencia Observada (Oi)', gridcolor: '#4A3527' },
         margin: { t: 20, r: 20, l: 50, b: 40 }
     });
 
@@ -273,14 +316,17 @@ function renderCharts() {
         name: 'Frecuencia Relativa fi'
     }], {
         ...plotlyDarkLayout,
-        xaxis: { title: 'Valor (k)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Probabilidad Empírica P(X=k)', gridcolor: '#2A3856' },
+        xaxis: { title: 'Valor (k)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Probabilidad Empírica P(X=k)', gridcolor: '#4A3527' },
         margin: { t: 20, r: 20, l: 50, b: 40 }
     });
 
-    // 3. Superposición: Observado vs Esperado de la distribución seleccionada
+    // 3. Superposición: TODAS las candidatas ajustadas sobre las frecuencias observadas.
+    //    El enunciado pide comparar la variable discreta con las cuatro candidatas,
+    //    no solo con la seleccionada, de modo que se superponen todas las que fueron
+    //    ajustables. La seleccionada se dibuja con trazo grueso para destacarla.
     const currentDist = distResults.find(d => d.name === selectedDistName && d.valid) || distResults.find(d => d.valid);
-    
+
     const traces = [{
         x: xVals,
         y: yFreq,
@@ -290,22 +336,28 @@ function renderCharts() {
         marker: { color: '#3B82F6' }
     }];
 
-    if (currentDist && currentDist.expected_freq && currentDist.expected_freq.length > 0) {
+    const palette = ['#EF4444', '#22C55E', '#EAB308', '#A855F7', '#06B6D4'];
+    let colorIdx = 0;
+    distResults.forEach(d => {
+        if (!d.valid || !d.expected_freq || d.expected_freq.length === 0) return;
+        const isSelected = currentDist && d.name === currentDist.name;
+        const color = isSelected ? '#EF4444' : palette[colorIdx % palette.length];
+        if (!isSelected) colorIdx++;
         traces.push({
             x: xVals,
-            y: currentDist.expected_freq,
+            y: d.expected_freq,
             type: 'scatter',
             mode: 'lines+markers',
-            name: `Ajuste Teórico (${currentDist.name})`,
-            line: { color: '#EF4444', width: 3, dash: 'dot' },
-            marker: { size: 7, color: '#EF4444' }
+            name: isSelected ? `Seleccionada: ${d.name}` : d.name,
+            line: { color: color, width: isSelected ? 3 : 1.5, dash: isSelected ? 'solid' : 'dot' },
+            marker: { size: isSelected ? 7 : 4, color: color }
         });
-    }
+    });
 
     Plotly.newPlot('fitComparisonChart', traces, {
         ...plotlyDarkLayout,
-        xaxis: { title: 'Valor de la Variable (k)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Número de Observaciones', gridcolor: '#2A3856' },
+        xaxis: { title: 'Valor de la Variable (k)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Número de Observaciones', gridcolor: '#4A3527' },
         legend: { orientation: 'h', y: 1.1 },
         margin: { t: 30, r: 20, l: 60, b: 40 },
         barmode: 'overlay'
