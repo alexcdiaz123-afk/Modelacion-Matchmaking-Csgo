@@ -58,7 +58,7 @@
 </div>
 
 <!-- Panel de Configuración de la Simulación -->
-<div class="card mb-4" style="border-left: 4px solid var(--blue);">
+<div class="card mb-4" style="border-left: 4px solid var(--info);">
     <div class="card-header bg-dark d-flex justify-content-between align-items-center">
         <h5 class="mb-0 text-info">Configuración de Parámetros de Matchmaking</h5>
         <span class="badge bg-secondary">Modelado de Cola</span>
@@ -317,8 +317,8 @@ function renderSimulationDashboard(res) {
         fillcolor: 'rgba(245, 158, 11, 0.15)'
     }], {
         ...plotlyDarkLayout,
-        xaxis: { title: 'Tiempo Simulado (segundos)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Tamaño de la Cola', gridcolor: '#2A3856' },
+        xaxis: { title: 'Tiempo Simulado (segundos)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Tamaño de la Cola', gridcolor: '#4A3527' },
         margin: { t: 20, r: 20, l: 50, b: 40 }
     });
 
@@ -330,8 +330,8 @@ function renderSimulationDashboard(res) {
         marker: { color: '#06B6D4' }
     }], {
         ...plotlyDarkLayout,
-        xaxis: { title: 'Tiempo de Espera (segundos)', gridcolor: '#2A3856' },
-        yaxis: { title: 'Frecuencia de Jugadores', gridcolor: '#2A3856' },
+        xaxis: { title: 'Tiempo de Espera (segundos)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Frecuencia de Jugadores', gridcolor: '#4A3527' },
         margin: { t: 20, r: 20, l: 50, b: 40 }
     });
 }

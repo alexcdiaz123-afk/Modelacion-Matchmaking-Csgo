@@ -4,6 +4,9 @@ Incluye pruebas de bondad de ajuste, pruebas de normalidad, pruebas de dos muest
 y utilidades para gráficos estadísticos (Q-Q plot, ECDF).
 """
 
+import math
+from functools import partial
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -12,25 +15,39 @@ from scipy import stats
 def chi_square_test(observed_freq, expected_freq, ddof=0):
     """
     Prueba de Chi-cuadrado para bondad de ajuste en variables discretas.
-    Agrupa automáticamente colas con frecuencias esperadas < 5 para garantizar
-    la validez matemática de la aproximación asintótica.
-    
+
+    Aplica dos correcciones metodológicas necesarias para que el estadístico sea
+    interpretable:
+
+    1. COLA NO OBSERVADA: si la suma de las frecuencias esperadas sobre el soporte
+       observado es menor que N, la masa que corresponde a valores no presentes en
+       la muestra (por ejemplo las rondas 19..30 en un rango de habilidad acotado
+       a 18) se agrega como una categoría adicional con O = 0 y E = déficit. Esta es
+       la masa de probabilidad que el modelo asigna al soporte y que la muestra no
+       respalda; omitirla (o redistribuirla) sesgaría el estadístico.
+
+    2. AGRUPAMIENTO DE COLAS: se acumulan categorías adyacentes hasta alcanzar
+       E >= 5, condición de validez de la aproximación asintótica de Pearson.
+
+    No se renormaliza el vector esperado: hacerlo (escalar E para que sume N)
+    reduce artificialmente el estadístico y sesga la decisión.
+
     Args:
         observed_freq: Lista o array de frecuencias observadas (Oi).
         expected_freq: Lista o array de frecuencias esperadas (Ei).
         ddof: Grados de libertad restados por parámetros estimados (p. ej., 1 para Poisson).
-        
+
     Returns:
         Diccionario con estadístico chi2, p-valor, grados de libertad y validez.
     """
     obs = np.array(observed_freq, dtype=float)
     exp = np.array(expected_freq, dtype=float)
-    
-    # Filtrar valores no positivos o nulos
+
+    # Descartar categorías con esperado no positivo o no finito
     valid_mask = (exp > 0) & np.isfinite(exp) & np.isfinite(obs)
     obs = obs[valid_mask]
     exp = exp[valid_mask]
-    
+
     if len(obs) < 2:
         return {
             'statistic': float(np.nan),
@@ -40,14 +57,22 @@ def chi_square_test(observed_freq, expected_freq, ddof=0):
             'pooled_bins': 0,
             'message': 'Insuficientes categorías para la prueba Chi-cuadrado'
         }
-    
-    # Agrupamiento de clases (bin pooling) para Ei >= 5 cuando sea posible
+
+    total_obs = float(np.sum(obs))
+
+    # 1. Categoría explícita para la cola no observada (soporte del modelo > soporte muestral)
+    tail_mass = total_obs - float(np.sum(exp))
+    if tail_mass > 0.5:
+        obs = np.append(obs, 0.0)
+        exp = np.append(exp, tail_mass)
+
+    # 2. Agrupamiento de clases adyacentes hasta alcanzar E >= 5
     pooled_obs = []
     pooled_exp = []
-    
+
     cur_obs = 0.0
     cur_exp = 0.0
-    
+
     for o, e in zip(obs, exp):
         cur_obs += o
         cur_exp += e
@@ -56,87 +81,135 @@ def chi_square_test(observed_freq, expected_freq, ddof=0):
             pooled_exp.append(cur_exp)
             cur_obs = 0.0
             cur_exp = 0.0
-            
-    # Añadir remanente al último bin si quedó algo
-    if cur_exp > 0:
-        if len(pooled_obs) > 0:
+
+    # El remanente se une al último bin para no perder masa de probabilidad
+    if cur_exp > 0.5:
+        if pooled_obs:
             pooled_obs[-1] += cur_obs
             pooled_exp[-1] += cur_exp
         else:
             pooled_obs.append(cur_obs)
             pooled_exp.append(cur_exp)
-            
-    # Si tras agrupar quedan menos de 2 bins, usar los originales para reportar el estadístico
+
     if len(pooled_obs) >= 2:
         final_obs = np.array(pooled_obs)
         final_exp = np.array(pooled_exp)
     else:
         final_obs = obs
         final_exp = exp
-        
-    # Normalizar frecuencias esperadas para que sumen exactamente la suma de observadas
-    sum_obs = np.sum(final_obs)
-    sum_exp = np.sum(final_exp)
-    if sum_exp > 0:
-        final_exp = final_exp * (sum_obs / sum_exp)
-        
-    chi2_stat = np.sum((final_obs - final_exp) ** 2 / final_exp)
+
+    # Sin renormalización: el estadístico usa las frecuencias tal como quedaron
+    with np.errstate(divide='ignore', invalid='ignore'):
+        contributions = np.where(final_exp > 0, (final_obs - final_exp) ** 2 / final_exp, 0.0)
+    chi2_stat = float(np.sum(contributions))
+
     k = len(final_obs)
     degrees_of_freedom = max(1, k - 1 - ddof)
-    
-    p_value = 1.0 - stats.chi2.cdf(chi2_stat, degrees_of_freedom)
-    
+    p_value = float(1.0 - stats.chi2.cdf(chi2_stat, degrees_of_freedom))
+
     return {
-        'statistic': float(chi2_stat),
-        'p_value': float(p_value),
+        'statistic': chi2_stat,
+        'p_value': p_value,
         'df': int(degrees_of_freedom),
         'k_bins': int(k),
+        'n_categories_raw': int(len(obs)),
+        'tail_mass': float(max(0.0, tail_mass)),
         'valid': True,
-        'message': f'Prueba Chi-cuadrado calculada con {k} categorías ({degrees_of_freedom} g.l.)'
+        'message': f'Chi-cuadrado con {k} clases agrupadas ({degrees_of_freedom} g.l.)'
     }
+
+
+def build_cdf(dist_name, params):
+    """
+    Construye la función de distribución acumulada teórica F(x) a partir del nombre
+    de la distribución de SciPy y de los parámetros estimados.
+
+    Se devuelve siempre un *callable* y no el par (nombre, args) porque el despacho
+    por nombre de `scipy.stats.kstest` invoca internamente `special.ndtr(x, loc, scale)`
+    para 'norm', lo que produce el error
+    `ndtr() takes from 1 to 2 positional arguments but 3 were given`
+    en SciPy >= 1.18 y devuelve un NaN silencioso. El camino con callable es
+    equivalente (verificado contra el despacho por nombre en las demás familias)
+    y es inmune a ese fallo.
+
+    Args:
+        dist_name: Nombre de la distribución en scipy.stats ('norm', 'expon', ...).
+        params: Diccionario con los parámetros estimados.
+
+    Returns:
+        Callable F(x) -> P(X <= x), o None si la combinación no es válida.
+    """
+    if dist_name == 'norm':
+        return partial(stats.norm.cdf,
+                       loc=params.get('mu', 0.0),
+                       scale=params.get('sigma', 1.0))
+    if dist_name == 'expon':
+        return partial(stats.expon.cdf,
+                       loc=0.0,
+                       scale=params.get('scale', params.get('lambda', 1.0) and 1.0 / params['lambda']))
+    if dist_name == 'lognorm':
+        return partial(stats.lognorm.cdf,
+                       s=params.get('sigma', 1.0),
+                       loc=0.0,
+                       scale=params.get('scale', math.exp(params.get('mu', 0.0))))
+    if dist_name == 'gamma':
+        return partial(stats.gamma.cdf,
+                       a=params.get('shape', 1.0),
+                       loc=0.0,
+                       scale=params.get('scale', 1.0))
+    if dist_name == 'weibull_min':
+        return partial(stats.weibull_min.cdf,
+                       c=params.get('shape', 1.0),
+                       loc=0.0,
+                       scale=params.get('scale', 1.0))
+    if dist_name == 'uniform':
+        a = params.get('a', 0.0)
+        b = params.get('b', 1.0)
+        if not b > a:
+            return None
+        return partial(stats.uniform.cdf, loc=a, scale=b - a)
+    if dist_name == 'poisson':
+        return lambda x: np.asarray([stats.poisson.cdf(int(v), params.get('lambda', 1.0)) for v in np.atleast_1d(x)])
+    if dist_name == 'nbinom':
+        return lambda x: np.asarray([stats.nbinom.cdf(int(v), params.get('r', 1.0), params.get('p', 0.5)) for v in np.atleast_1d(x)])
+    if dist_name == 'binom':
+        return lambda x: np.asarray([stats.binom.cdf(int(v), int(params.get('n', 10)), params.get('p', 0.5)) for v in np.atleast_1d(x)])
+    if dist_name == 'geom':
+        return lambda x: np.asarray([stats.geom.cdf(int(v), params.get('p', 0.5)) for v in np.atleast_1d(x)])
+    return None
 
 
 def ks_test(data, dist_name, params):
     """
     Prueba de Kolmogorov-Smirnov para distribuciones continuas.
     Compara la función de distribución acumulada empírica con la teórica ajustada.
-    
+
     Args:
         data: Array de datos continuos observados.
         dist_name: Nombre de la distribución scipy (p. ej. 'norm', 'expon', 'lognorm').
         params: Parámetros estimados de la distribución.
-        
+
     Returns:
         Diccionario con estadístico D y p-valor.
     """
     try:
         clean_data = np.array(data, dtype=float)
         clean_data = clean_data[np.isfinite(clean_data)]
-        
+
         if len(clean_data) < 5:
             return {'statistic': float(np.nan), 'p_value': float(np.nan), 'valid': False, 'error': 'Muestra insuficiente'}
-            
-        dist = getattr(stats, dist_name)
-        
-        # Ajustar parámetros con scipy si no están directamente en la firma requerida
-        if dist_name == 'norm':
-            res = stats.kstest(clean_data, 'norm', args=(params.get('mu', np.mean(clean_data)), params.get('sigma', np.std(clean_data))))
-        elif dist_name == 'expon':
-            res = stats.kstest(clean_data, 'expon', args=(0, params.get('scale', np.mean(clean_data))))
-        elif dist_name == 'lognorm':
-            res = stats.kstest(clean_data, 'lognorm', args=(params.get('sigma', 1.0), 0, np.exp(params.get('mu', 0.0))))
-        elif dist_name == 'gamma':
-            res = stats.kstest(clean_data, 'gamma', args=(params.get('shape', 1.0), 0, params.get('scale', 1.0)))
-        elif dist_name == 'weibull_min':
-            res = stats.kstest(clean_data, 'weibull_min', args=(params.get('shape', 1.0), 0, params.get('scale', 1.0)))
-        elif dist_name == 'uniform':
-            a = params.get('a', np.min(clean_data))
-            b = params.get('b', np.max(clean_data))
-            res = stats.kstest(clean_data, 'uniform', args=(a, b - a))
-        else:
-            fitted_params = dist.fit(clean_data)
-            res = stats.kstest(clean_data, lambda x: dist.cdf(x, *fitted_params))
-            
+
+        cdf = build_cdf(dist_name, params)
+        if cdf is None:
+            return {'statistic': float(np.nan), 'p_value': float(np.nan), 'valid': False,
+                    'error': f"Parámetros inválidos para '{dist_name}'"}
+
+        res = stats.kstest(clean_data, cdf)
+
+        if not np.isfinite(res.statistic):
+            return {'statistic': float(np.nan), 'p_value': float(np.nan), 'valid': False,
+                    'error': 'El estadístico KS no pudo calcularse'}
+
         return {
             'statistic': float(res.statistic),
             'p_value': float(res.pvalue),

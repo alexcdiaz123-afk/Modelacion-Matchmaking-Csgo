@@ -61,16 +61,45 @@
                         <span class="text-muted small text-uppercase fw-bold">Justificación Académica del Modelo:</span>
                     </div>
                     <div class="card-body py-2">
-                        <p class="small text-light mb-0">
-                            La variable <strong>'{{ discrete_col }}'</strong> describe estados discretos numerables dentro del entorno de CS:GO
-                            (tales como rangos de destreza competitiva o conteo de rondas). La distribución <strong>{{ discrete_selected }}</strong>
-                            fue adoptada considerando:
+                        <p class="small text-light mb-2">
+                            La variable <strong>'{{ discrete_col }}'</strong> es una magnitud discreta no negativa
+                            (rango competitivo del atacante en cada ronda). La distribución
+                            <strong>{{ discrete_selected }}</strong> se eligió mediante un puntaje multiobjetivo,
+                            <strong>no</strong> por el menor p-valor: con esta muestra, χ² tiene potencia
+                            prácticamente 1 y rechaza a todos los candidatos, de modo que el p-valor no discrimina.
                         </p>
-                        <ul class="small text-muted mt-2 mb-0 ps-3">
-                            <li><strong>Criterio de dispersión:</strong> La relación empírica varianza/media concuerda con las propiedades teóricas de la familia postulada.</li>
-                            <li><strong>Consistencia gráfica:</strong> Las probabilidades esperadas P(X=k) se alinean con los pesos de masa del histograma observado.</li>
-                            <li><strong>Relevancia en Matchmaking:</strong> Proporciona un marco matemáticamente consistente para muestrear jugadores con niveles de habilidad representativos de la comunidad de CS:GO.</li>
+                        {% set d_sel_row = none %}
+                        {% for r in (discrete_results or []) %}{% if r.name == discrete_selected %}{% set d_sel_row = r %}{% endif %}{% endfor %}
+                        {% if d_sel_row and d_sel_row.score %}
+                        <div class="small mb-2">
+                            Puntaje total = <strong>{{ "%.4f"|format(d_sel_row.score.total) }}</strong>
+                            (ranking #{{ d_sel_row.score.rank }} de
+                            {{ (discrete_results or []) | selectattr('score') | list | length }} candidatas)
+                        </div>
+                        <ul class="small text-muted mb-0 ps-3">
+                            <li><strong>Ajuste estadístico ({{ "%.2f"|format(d_sel_row.score.weights.gof) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(d_sel_row.score.gof) }}, con χ²/g.l. = {{ "%.2f"|format(d_sel_row.score.gof_raw) }}.</li>
+                            <li><strong>Contraste de momentos ({{ "%.2f"|format(d_sel_row.score.weights.moment) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(d_sel_row.score.moment) }}
+                                {%- for k, v in (d_sel_row.score.moment_detail or {}).items() %}{% if v.theory is not none and v.sample is not none %},
+                                {{ k }}: {{ "%.4f"|format(v.sample) }} (muestra) vs {{ "%.4f"|format(v.theory) }} (modelo){% endif %}{% endfor %}.</li>
+                            <li><strong>Coherencia de soporte ({{ "%.2f"|format(d_sel_row.score.weights.support) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(d_sel_row.score.support) }}; soporte
+                                <code>{{ d_sel_row.score.support_detail.theoretical_support }}</code>
+                                {%- if d_sel_row.score.support_detail.viable %}, viable{% else %}, <span class="text-danger">no viable</span>{% endif %}.</li>
                         </ul>
+                        {% for issue in (d_sel_row.score.support_detail.issues or []) %}
+                        <div class="small text-warning mt-2">{{ issue }}</div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="small text-muted mb-0">Seleccione una distribución desde la
+                            <a href="{{ url_for('discrete_page') }}" class="text-warning">página discreta</a>
+                            para ver el desglose del puntaje.</p>
+                        {% endif %}
+                        <p class="small text-muted mt-2 mb-0">
+                            Limitación: los rangos de una misma cuenta se repiten entre rondas, de modo que la
+                            distribución describe la marginal y no la dependencia temporal.
+                        </p>
                     </div>
                 </div>
 
@@ -83,7 +112,7 @@
 
     <!-- VARIABLE CONTINUA SELECCIONADA -->
     <div class="col-md-6">
-        <div class="card h-100" style="border-top: 4px solid var(--blue);">
+        <div class="card h-100" style="border-top: 4px solid var(--info);">
             <div class="card-header bg-dark d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-info">Variable Aleatoria Continua</h5>
                 <span class="badge bg-info text-dark">{{ continuous_selected or 'No seleccionada' }}</span>
@@ -125,15 +154,59 @@
                         <span class="text-muted small text-uppercase fw-bold">Justificación Académica del Modelo:</span>
                     </div>
                     <div class="card-body py-2">
-                        <p class="small text-light mb-0">
-                            La variable <strong>'{{ continuous_col }}'</strong> cuantifica una magnitud continua (segundos transcurridos, duración de ronda o daño infligido).
-                            El modelo <strong>{{ continuous_selected }}</strong> fue elegido sobre las alternativas considerando:
+                        <p class="small text-light mb-2">
+                            La variable <strong>'{{ continuous_col }}'</strong> es una magnitud continua no negativa
+                            (tiempo en segundos). El modelo <strong>{{ continuous_selected }}</strong> se eligió
+                            combinando ajuste, contraste de momentos y coherencia de soporte, y se restringió a las
+                            familias <strong>viables</strong>, es decir aquellas que no asignan masa de probabilidad
+                            a duraciones negativas.
                         </p>
-                        <ul class="small text-muted mt-2 mb-0 ps-3">
-                            <li><strong>Ajuste de densidad:</strong> Minimización de la distancia suprimida en la prueba de Kolmogorov-Smirnov y superposición visual con el estimador KDE.</li>
-                            <li><strong>Soporte físico y temporal:</strong> Coherencia con el soporte positivo y asimetría natural del fenómeno de combate en CS:GO.</li>
-                            <li><strong>Integración en el Matchmaking:</strong> Esta variable servirá como métrica continua de rendimiento individual para ponderar la compatibilidad entre jugadores en la cola.</li>
+                        {% set c_sel_row = none %}
+                        {% for r in (continuous_results or []) %}{% if r.name == continuous_selected %}{% set c_sel_row = r %}{% endif %}{% endfor %}
+                        {% if c_sel_row and c_sel_row.score %}
+                        <div class="small mb-2">
+                            Puntaje total = <strong>{{ "%.4f"|format(c_sel_row.score.total) }}</strong>
+                            (ranking #{{ c_sel_row.score.rank }} de
+                            {{ (continuous_results or []) | selectattr('score') | list | length }} candidatas)
+                        </div>
+                        <ul class="small text-muted mb-0 ps-3">
+                            <li><strong>Ajuste estadístico ({{ "%.2f"|format(c_sel_row.score.weights.gof) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(c_sel_row.score.gof) }}, con D = {{ "%.5f"|format(c_sel_row.score.gof_raw) }}.</li>
+                            <li><strong>Contraste de momentos ({{ "%.2f"|format(c_sel_row.score.weights.moment) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(c_sel_row.score.moment) }}
+                                {%- for k, v in (c_sel_row.score.moment_detail or {}).items() %}{% if v.theory is not none and v.sample is not none %},
+                                {{ k }}: {{ "%.4f"|format(v.sample) }} vs {{ "%.4f"|format(v.theory) }}{% endif %}{% endfor %}.</li>
+                            <li><strong>Coherencia de soporte ({{ "%.2f"|format(c_sel_row.score.weights.support) }}):</strong>
+                                sub-puntaje {{ "%.3f"|format(c_sel_row.score.support) }}; soporte
+                                <code>{{ c_sel_row.score.support_detail.theoretical_support }}</code>,
+                                P(X&lt;0) = {{ "%.3f"|format((c_sel_row.score.support_detail.mass_below_floor or 0) * 100) }}%.</li>
                         </ul>
+                        {% for issue in (c_sel_row.score.support_detail.issues or []) %}
+                        <div class="small text-warning mt-2">{{ issue }}</div>
+                        {% endfor %}
+
+                        {% set c_gof_row = none %}
+                        {% for r in (continuous_results or []) %}{% if r.score and r.valid %}{% if c_gof_row is none or r.ks_stat < c_gof_row.ks_stat %}{% set c_gof_row = r %}{% endif %}{% endif %}{% endfor %}
+                        {% if c_gof_row and continuous_selected and c_gof_row.name != continuous_selected %}
+                        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                            <strong>Nota metodológica:</strong> <em>{{ c_gof_row.name }}</em> obtiene el mejor ajuste
+                            estadístico (D = {{ "%.5f"|format(c_gof_row.ks_stat) }}, el menor de la tabla), pero
+                            asigna {{ "%.2f"|format((c_gof_row.score.support_detail.mass_below_floor or 0) * 100) }}% de
+                            su masa a valores negativos, que el fenómeno prohíbe. Se descarta por tanto como modelo
+                            de una duración: un excelente ajuste estadístico no garantiza que la familia sea
+                            apropiada para el contexto.
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <p class="small text-muted mb-0">Seleccione una distribución desde la
+                            <a href="{{ url_for('continuous_page') }}" class="text-info">página continua</a>
+                            para ver el desglose del puntaje.</p>
+                        {% endif %}
+                        <p class="small text-muted mt-2 mb-0">
+                            Limitación: <strong>'{{ continuous_col }}'</strong> es el reloj de la ronda, no una duración
+                            independiente. Las rondas de una misma partida están correlacionadas, de modo que esta
+                            marginal no basta para simular partidas realistas sin un modelo de dependencia.
+                        </p>
                     </div>
                 </div>
 

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Variable Aleatoria Continua — CS:GO Matchmaking{% endblock %}
 
@@ -21,7 +21,7 @@
 <!-- Estadísticas Descriptivas Exhaustivas -->
 <div class="stats-grid mb-3">
     <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(stats.n) }}</div>
+        <div class="stat-value">{{ stats.n|es }}</div>
         <div class="stat-label">Observaciones (N)</div>
     </div>
     <div class="stat-card">
@@ -156,19 +156,26 @@
 </div>
 
 <!-- Ajuste de Distribuciones Continuas y Kolmogorov-Smirnov -->
-<div class="card mb-4" style="border-top: 3px solid var(--blue);">
+<div class="card mb-4" style="border-top: 3px solid var(--info);">
     <div class="card-header bg-dark">
         <h5 class="mb-0">Ajuste de Distribuciones Candidatas y Prueba de Kolmogorov-Smirnov (KS)</h5>
     </div>
     <div class="card-body">
+        <div class="alert alert-secondary">
+            <strong>Hipótesis contrastadas (α = {{ alpha }}).</strong><br>
+            <strong>H<sub>0</sub>:</strong> la variable aleatoria continua <em>'{{ column }}'</em> sigue la distribución teórica propuesta.<br>
+            <strong>H<sub>1</sub>:</strong> la variable no sigue la distribución teórica propuesta.
+        </div>
         <div class="table-responsive">
             <table class="table table-dark table-hover table-bordered mb-0 align-middle">
                 <thead class="table-primary text-uppercase small">
                     <tr>
                         <th>Distribución</th>
                         <th>Parámetros Estimados (MLE)</th>
+                        <th>Soporte</th>
                         <th>Estadístico KS (D)</th>
                         <th>p-valor</th>
+                        <th>Puntaje multiobjetivo</th>
                         <th>Decisión (α = {{ alpha }})</th>
                         <th>Acción</th>
                     </tr>
@@ -189,14 +196,49 @@
                                 <span class="text-danger small">{{ dist.error or 'Incompatible' }}</span>
                             {% endif %}
                         </td>
-                        <td>{{ "{:.4f}".format(dist.ks_stat) if dist.ks_stat is not none else '—' }}</td>
+                        <td class="small">{{ dist.support or '—' }}</td>
+                        <td>{{ "{:.5f}".format(dist.ks_stat) if dist.ks_stat is not none else '—' }}</td>
                         <td>
                             {% if dist.p_value is not none %}
                                 <strong class="{% if dist.p_value >= alpha %}text-success{% else %}text-danger{% endif %}">
-                                    {{ "{:.6f}".format(dist.p_value) }}
+                                    {{ "{:.3e}".format(dist.p_value) }}
                                 </strong>
                             {% else %}
                                 —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dist.score %}
+                            <div class="small mb-1">
+                                <span class="text-info">total</span> <strong>{{ "%.4f"|format(dist.score.total) }}</strong>
+                                <span class="text-muted">#{{ dist.score.rank }}</span>
+                            </div>
+                            <div class="progress" style="height: 6px;" title="Ajuste">
+                                <div class="progress-bar bg-info" style="width: {{ (dist.score.gof * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="progress mt-1" style="height: 6px;" title="Momentos">
+                                <div class="progress-bar bg-warning" style="width: {{ (dist.score.moment * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="progress mt-1" style="height: 6px;" title="Soporte">
+                                <div class="progress-bar bg-success" style="width: {{ (dist.score.support * 100)|round(1) }}%"></div>
+                            </div>
+                            <div class="small mt-1">
+                                {% if dist.score.support_detail.viable %}
+                                    <span class="badge bg-success">viable</span>
+                                {% else %}
+                                    <span class="badge bg-danger" title="{{ dist.score.support_detail.issues|join(' ') }}">no viable</span>
+                                {% endif %}
+                            </div>
+                            <div class="small text-muted mt-1">
+                                P(X&lt;0) = {{ "%.2f"|format((dist.score.support_detail.mass_below_floor or 0) * 100) }}%
+                            </div>
+                            {% if dist.score.support_detail.issues %}
+                            <ul class="small text-warning mt-1 mb-0 ps-3">
+                                {% for issue in dist.score.support_detail.issues %}<li>{{ issue }}</li>{% endfor %}
+                            </ul>
+                            {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
                             {% endif %}
                         </td>
                         <td>
@@ -240,7 +282,7 @@
                 Advertencia Académica sobre Potencia en Muestras Grandes:
             </h6>
             <p class="mb-0 small">
-                Para tamaños muestrales muy elevados (N = {{ "{:,}".format(stats.n) }}), las pruebas de hipótesis formales (como Shapiro-Wilk o Anderson-Darling)
+                Para tamaños muestrales muy elevados (N = {{ stats.n|es }}), las pruebas de hipótesis formales (como Shapiro-Wilk o Anderson-Darling)
                 adquieren una potencia estadística prácticamente del 100%, tendiendo a rechazar H₀ incluso ante desviaciones numéricas insignificantes.
                 Por consiguiente, <strong>la decisión estadística debe sustentarse primordialmente en el análisis gráfico (Q-Q Plot y ajuste visual de la densidad).</strong>
             </p>
@@ -326,8 +368,8 @@ async function renderContinuousCharts() {
             }
         ], {
             ...plotlyDarkLayout,
-            xaxis: { title: 'Valor de la Variable', gridcolor: '#2A3856' },
-            yaxis: { title: 'Densidad Estimada', gridcolor: '#2A3856' },
+            xaxis: { title: 'Valor de la Variable', gridcolor: '#4A3527' },
+            yaxis: { title: 'Densidad Estimada', gridcolor: '#4A3527' },
             margin: { t: 20, r: 20, l: 50, b: 40 }
         });
 
@@ -345,7 +387,7 @@ async function renderContinuousCharts() {
             boxpoints: 'outliers'
         }], {
             ...plotlyDarkLayout,
-            yaxis: { title: 'Escala de la Variable', gridcolor: '#2A3856' },
+            yaxis: { title: 'Escala de la Variable', gridcolor: '#4A3527' },
             margin: { t: 20, r: 20, l: 50, b: 40 }
         });
 
@@ -361,8 +403,8 @@ async function renderContinuousCharts() {
             line: { color: '#10B981', width: 2 }
         }], {
             ...plotlyDarkLayout,
-            xaxis: { title: 'Valor (x)', gridcolor: '#2A3856' },
-            yaxis: { title: 'Probabilidad Acumulada F(x)', gridcolor: '#2A3856' },
+            xaxis: { title: 'Valor (x)', gridcolor: '#4A3527' },
+            yaxis: { title: 'Probabilidad Acumulada F(x)', gridcolor: '#4A3527' },
             margin: { t: 20, r: 20, l: 50, b: 40 }
         });
 
@@ -394,8 +436,8 @@ async function renderContinuousCharts() {
 
         Plotly.newPlot('overlayFitChart', overlayTraces, {
             ...plotlyDarkLayout,
-            xaxis: { title: 'Escala Continua', gridcolor: '#2A3856' },
-            yaxis: { title: 'Densidad Teórica f(x)', gridcolor: '#2A3856' },
+            xaxis: { title: 'Escala Continua', gridcolor: '#4A3527' },
+            yaxis: { title: 'Densidad Teórica f(x)', gridcolor: '#4A3527' },
             legend: { orientation: 'h', y: 1.1 },
             margin: { t: 30, r: 20, l: 50, b: 40 }
         });
@@ -422,8 +464,8 @@ async function renderContinuousCharts() {
             }
         ], {
             ...plotlyDarkLayout,
-            xaxis: { title: 'Cuantiles Teóricos Normales', gridcolor: '#2A3856' },
-            yaxis: { title: 'Cuantiles Muestrales Estandarizados', gridcolor: '#2A3856' },
+            xaxis: { title: 'Cuantiles Teóricos Normales', gridcolor: '#4A3527' },
+            yaxis: { title: 'Cuantiles Muestrales Estandarizados', gridcolor: '#4A3527' },
             legend: { orientation: 'h', y: 1.15 },
             margin: { t: 30, r: 20, l: 50, b: 40 }
         });

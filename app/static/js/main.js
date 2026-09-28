@@ -5,19 +5,19 @@
 
 // Configuración global de Plotly con tema oscuro
 const plotlyDarkLayout = {
-    paper_bgcolor: '#151F35',
-    plot_bgcolor: '#151F35',
+    paper_bgcolor: '#271C16',
+    plot_bgcolor: '#271C16',
     font: {
-        color: '#F8FAFC',
+        color: '#F7F1E8',
         family: 'Inter, sans-serif'
     },
     xaxis: {
-        gridcolor: '#2A3856',
-        zerolinecolor: '#2A3856'
+        gridcolor: '#4A3527',
+        zerolinecolor: '#4A3527'
     },
     yaxis: {
-        gridcolor: '#2A3856',
-        zerolinecolor: '#2A3856'
+        gridcolor: '#4A3527',
+        zerolinecolor: '#4A3527'
     },
     margin: {
         l: 60,
