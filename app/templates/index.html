@@ -12,19 +12,24 @@
 <!-- Estadísticas principales -->
 <div class="stats-grid">
     <div class="stat-card accent">
-        <div class="stat-value" id="statObservations">—</div>
-        <div class="stat-label">Observaciones</div>
+        <div class="stat-value" id="statObservations">{% if n_rows %}{{ n_rows|es }}{% else %}—{% endif %}</div>
+        <div class="stat-label">
+            Observaciones
+            {% if is_cleaned %}
+            <span class="badge bg-success ms-1" style="font-size: 0.68rem;">Depurado</span>
+            {% endif %}
+        </div>
     </div>
     <div class="stat-card blue">
-        <div class="stat-value" id="statVariables">—</div>
+        <div class="stat-value" id="statVariables">{% if n_cols %}{{ n_cols }}{% else %}—{% endif %}</div>
         <div class="stat-label">Variables</div>
     </div>
     <div class="stat-card success">
-        <div class="stat-value" id="statDistributions">6</div>
+        <div class="stat-value" id="statDistributions">10</div>
         <div class="stat-label">Distribuciones</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value" id="statSimulation">10,000</div>
+        <div class="stat-value" id="statSimulation">10.000</div>
         <div class="stat-label">Simulación</div>
     </div>
 </div>
@@ -221,11 +226,20 @@ async function loadStats() {
     try {
         const response = await fetch('/api/dataset/info');
         const info = await response.json();
-        if (info.n_rows) {
-            document.getElementById('statObservations').textContent = info.n_rows.toLocaleString();
-        }
-        if (info.n_cols) {
+        if (info.success && info.n_rows) {
+            document.getElementById('statObservations').textContent = Number(info.n_rows).toLocaleString('es-ES');
             document.getElementById('statVariables').textContent = info.n_cols;
+            const obsLabel = document.querySelector('.stat-card.accent .stat-label');
+            if (obsLabel) {
+                if (info.is_cleaned) {
+                    if (!obsLabel.querySelector('.badge')) {
+                        obsLabel.innerHTML = 'Observaciones <span class="badge bg-success ms-1" style="font-size: 0.68rem;">Depurado</span>';
+                    }
+                } else {
+                    const badge = obsLabel.querySelector('.badge');
+                    if (badge) badge.remove();
+                }
+            }
         }
     } catch (err) {
         console.error('Error loading stats:', err);

@@ -156,13 +156,40 @@ def auto_select_default_variables(df):
 @app.route('/')
 def index():
     """MÓDULO 1: Dashboard y Contexto del Matchmaking."""
-    return render_template('index.html')
+    df = get_df()
+    n_rows = len(df) if df is not None else 0
+    n_cols = len(df.columns) if df is not None else 0
+    is_cleaned = DATASET_STATE['clean_df'] is not None
+    info = DATASET_STATE.get('info') or {}
+    return render_template('index.html',
+                           n_rows=n_rows,
+                           n_cols=n_cols,
+                           is_cleaned=is_cleaned,
+                           info=info,
+                           discrete_col=DATASET_STATE.get('discrete_col'),
+                           continuous_col=DATASET_STATE.get('continuous_col'),
+                           discrete_selected=DATASET_STATE.get('discrete_selected'),
+                           continuous_selected=DATASET_STATE.get('continuous_selected'))
 
 
 @app.route('/dataset')
 def dataset_page():
     """MÓDULO 2: Explorador del Dataset."""
-    return render_template('dataset.html')
+    df = get_df()
+    info = DATASET_STATE.get('info') or {}
+    is_cleaned = DATASET_STATE['clean_df'] is not None
+    n_rows = len(df) if df is not None else 0
+    n_cols = len(df.columns) if df is not None else 0
+    n_duplicates = int(df.duplicated().sum()) if df is not None else 0
+    mem_mb = round(df.memory_usage(deep=True).sum() / (1024 * 1024), 2) if df is not None else 0
+    return render_template('dataset.html',
+                           df=df,
+                           info=info,
+                           is_cleaned=is_cleaned,
+                           n_rows=n_rows,
+                           n_cols=n_cols,
+                           n_duplicates=n_duplicates,
+                           mem_mb=mem_mb)
 
 
 @app.route('/cleaning')
@@ -279,9 +306,42 @@ def continuous_page():
                            alpha=DATASET_STATE['alpha'])
 
 
+def ensure_distributions_fitted():
+    """Garantiza que las distribuciones discreta y continua estén calculadas y ajustadas."""
+    df = get_df()
+    if df is None:
+        return
+    if not DATASET_STATE.get('discrete_col') or not DATASET_STATE.get('continuous_col'):
+        auto_select_default_variables(df)
+        
+    d_col = DATASET_STATE.get('discrete_col')
+    if DATASET_STATE.get('discrete_results') is None and d_col and d_col in df.columns:
+        data = df[d_col].dropna().values
+        ft = frequency_table(data)
+        obs_vals = [f['value'] for f in ft]
+        obs_freq = [f['frequency'] for f in ft]
+        dist_res = fit_discrete_distributions(data, obs_vals, obs_freq)
+        DATASET_STATE['discrete_results'] = dist_res
+        if not DATASET_STATE.get('discrete_selected'):
+            best = select_best(dist_res)
+            if best:
+                DATASET_STATE['discrete_selected'] = best['name']
+                
+    c_col = DATASET_STATE.get('continuous_col')
+    if DATASET_STATE.get('continuous_results') is None and c_col and c_col in df.columns:
+        data = df[c_col].dropna().values
+        dist_res = fit_continuous_distributions(data)
+        DATASET_STATE['continuous_results'] = dist_res
+        if not DATASET_STATE.get('continuous_selected'):
+            best = select_best(dist_res)
+            if best:
+                DATASET_STATE['continuous_selected'] = best['name']
+
+
 @app.route('/distributions')
 def distributions_page():
     """MÓDULO 11: Selección Final y Justificación Académica de Distribuciones."""
+    ensure_distributions_fitted()
     return render_template('distributions.html',
                            discrete_col=DATASET_STATE['discrete_col'],
                            continuous_col=DATASET_STATE['continuous_col'],
@@ -294,6 +354,7 @@ def distributions_page():
 @app.route('/simulation')
 def simulation_page():
     """MÓDULOS 12 y 13: Generación de Variables Aleatorias y Comparación Real vs Simulada."""
+    ensure_distributions_fitted()
     return render_template('simulation.html',
                            discrete_col=DATASET_STATE['discrete_col'],
                            continuous_col=DATASET_STATE['continuous_col'],
@@ -306,6 +367,7 @@ def simulation_page():
 @app.route('/matchmaking')
 def matchmaking_page():
     """MÓDULOS 14, 15, 16 y 17: Simulador de Matchmaking y Cola Estocástica."""
+    ensure_distributions_fitted()
     return render_template('matchmaking.html',
                            discrete_col=DATASET_STATE['discrete_col'],
                            continuous_col=DATASET_STATE['continuous_col'],
@@ -349,10 +411,83 @@ def api_dataset_files():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/dataset/init', methods=['POST'])
-def api_dataset_init():
-    """Inicializa automáticamente el dataset cargando el archivo principal."""
+@app.route('/api/dataset/info')
+def api_dataset_info():
+    """Retorna información detallada y métricas del DataFrame activo (limpio u original)."""
     try:
+        df = get_df()
+        if df is None:
+            df, info = load_dataset(nrows=50000)
+            DATASET_STATE['original_df'] = df
+            DATASET_STATE['info'] = info
+            auto_select_default_variables(df)
+            
+        df = get_df()
+        info = DATASET_STATE.get('info') or {}
+        is_cleaned = DATASET_STATE['clean_df'] is not None
+        
+        n_rows = len(df)
+        n_cols = len(df.columns)
+        n_duplicates = int(df.duplicated().sum())
+        mem_mb = round(df.memory_usage(deep=True).sum() / (1024 * 1024), 2)
+        
+        null_counts = {col: int(cnt) for col, cnt in df.isnull().sum().items()}
+        null_pct = {col: round(cnt / n_rows * 100, 2) if n_rows > 0 else 0 for col, cnt in null_counts.items()}
+        
+        return jsonify({
+            'success': True,
+            'filename': info.get('filename', 'dataset.csv'),
+            'filepath': info.get('filepath', ''),
+            'file_size_mb': info.get('file_size_mb', 0),
+            'n_rows': n_rows,
+            'n_cols': n_cols,
+            'columns': list(df.columns),
+            'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()},
+            'null_counts': null_counts,
+            'null_percentage': null_pct,
+            'n_duplicates': n_duplicates,
+            'memory_usage_mb': mem_mb,
+            'is_cleaned': is_cleaned,
+            'discrete_col': DATASET_STATE.get('discrete_col'),
+            'continuous_col': DATASET_STATE.get('continuous_col'),
+            'discrete_selected': DATASET_STATE.get('discrete_selected'),
+            'continuous_selected': DATASET_STATE.get('continuous_selected'),
+            'cleaning_summary': DATASET_STATE.get('cleaning_summary')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/dataset/init', methods=['GET', 'POST'])
+def api_dataset_init():
+    """Inicializa automáticamente o retorna el estado del dataset activo."""
+    try:
+        # Si ya hay un dataset cargado en memoria, NO lo recargamos desde disco ni borramos clean_df
+        if DATASET_STATE['original_df'] is not None:
+            df = get_df()
+            info = dict(DATASET_STATE.get('info') or {})
+            
+            # Recalcular métricas actuales del DataFrame activo
+            n_rows = len(df)
+            n_cols = len(df.columns)
+            info['n_rows'] = n_rows
+            info['n_cols'] = n_cols
+            info['n_duplicates'] = int(df.duplicated().sum())
+            info['memory_usage_mb'] = round(df.memory_usage(deep=True).sum() / (1024 * 1024), 2)
+            info['is_cleaned'] = DATASET_STATE['clean_df'] is not None
+            info['columns'] = list(df.columns)
+            info['dtypes'] = {col: str(dtype) for col, dtype in df.dtypes.items()}
+            info['null_counts'] = {col: int(cnt) for col, cnt in df.isnull().sum().items()}
+            info['null_percentage'] = {col: round(cnt / n_rows * 100, 2) if n_rows > 0 else 0 for col, cnt in info['null_counts'].items()}
+            
+            return jsonify({
+                'success': True,
+                'info': info,
+                'is_cleaned': DATASET_STATE['clean_df'] is not None,
+                'discrete_col': DATASET_STATE.get('discrete_col'),
+                'continuous_col': DATASET_STATE.get('continuous_col')
+            })
+            
         df, info = load_dataset(nrows=50000)
         DATASET_STATE['original_df'] = df
         DATASET_STATE['info'] = info
@@ -363,6 +498,7 @@ def api_dataset_init():
         return jsonify({
             'success': True,
             'info': info,
+            'is_cleaned': False,
             'discrete_col': DATASET_STATE['discrete_col'],
             'continuous_col': DATASET_STATE['continuous_col']
         })
@@ -489,6 +625,11 @@ def api_cleaning_apply():
         summary = get_cleaning_summary(DATASET_STATE['original_df'], df_clean)
         DATASET_STATE['clean_df'] = df_clean
         DATASET_STATE['cleaning_summary'] = summary
+        DATASET_STATE['discrete_results'] = None
+        DATASET_STATE['continuous_results'] = None
+        DATASET_STATE['discrete_simulated'] = None
+        DATASET_STATE['continuous_simulated'] = None
+        DATASET_STATE['matchmaking_results'] = None
         
         return jsonify({'success': True, 'summary': summary})
     except Exception as e:
@@ -500,6 +641,11 @@ def api_cleaning_reset():
     """Restaura los datos al estado original."""
     DATASET_STATE['clean_df'] = None
     DATASET_STATE['cleaning_summary'] = None
+    DATASET_STATE['discrete_results'] = None
+    DATASET_STATE['continuous_results'] = None
+    DATASET_STATE['discrete_simulated'] = None
+    DATASET_STATE['continuous_simulated'] = None
+    DATASET_STATE['matchmaking_results'] = None
     return jsonify({'success': True})
 
 

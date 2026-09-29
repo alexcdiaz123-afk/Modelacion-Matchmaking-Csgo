@@ -58,19 +58,24 @@
     <!-- Métricas principales del Dataset -->
     <div class="stats-grid mb-4">
         <div class="stat-card accent">
-            <div class="stat-value" id="statRows">—</div>
-            <div class="stat-label">Filas Cargadas</div>
+            <div class="stat-value" id="statRows">{% if n_rows %}{{ n_rows|es }}{% else %}—{% endif %}</div>
+            <div class="stat-label">
+                Filas Cargadas
+                {% if is_cleaned %}
+                <span class="badge bg-success ms-1" style="font-size:0.65rem;">Depurado</span>
+                {% endif %}
+            </div>
         </div>
         <div class="stat-card blue">
-            <div class="stat-value" id="statCols">—</div>
+            <div class="stat-value" id="statCols">{% if n_cols %}{{ n_cols }}{% else %}—{% endif %}</div>
             <div class="stat-label">Columnas</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value" id="statDuplicates">—</div>
+            <div class="stat-value" id="statDuplicates">{% if n_duplicates is defined %}{{ n_duplicates|es }}{% else %}—{% endif %}</div>
             <div class="stat-label">Duplicados</div>
         </div>
         <div class="stat-card success">
-            <div class="stat-value" id="statMemory">—</div>
+            <div class="stat-value" id="statMemory">{% if mem_mb %}{{ mem_mb }} MB{% else %}—{% endif %}</div>
             <div class="stat-label">Uso Memoria RAM</div>
         </div>
     </div>
@@ -283,10 +288,23 @@ async function loadSelectedFile() {
 }
 
 function updateUIWithDataset(info) {
-    document.getElementById('statRows').textContent = info.n_rows.toLocaleString();
-    document.getElementById('statCols').textContent = info.n_cols;
-    document.getElementById('statDuplicates').textContent = info.n_duplicates.toLocaleString();
-    document.getElementById('statMemory').textContent = `${info.memory_usage_mb} MB`;
+    if (!info) return;
+    document.getElementById('statRows').textContent = (info.n_rows || 0).toLocaleString('es-ES');
+    document.getElementById('statCols').textContent = info.n_cols || 0;
+    document.getElementById('statDuplicates').textContent = (info.n_duplicates !== undefined ? info.n_duplicates : 0).toLocaleString('es-ES');
+    document.getElementById('statMemory').textContent = `${info.memory_usage_mb || 0} MB`;
+    
+    const rowsLabel = document.querySelector('#statRows').nextElementSibling;
+    if (rowsLabel) {
+        if (info.is_cleaned) {
+            if (!rowsLabel.querySelector('.badge')) {
+                rowsLabel.innerHTML = 'Filas Cargadas <span class="badge bg-success ms-1" style="font-size:0.65rem;">Depurado</span>';
+            }
+        } else {
+            const badge = rowsLabel.querySelector('.badge');
+            if (badge) badge.remove();
+        }
+    }
     
     // Lista de tipos de datos
     const dictDiv = document.getElementById('columnsListDiv');
