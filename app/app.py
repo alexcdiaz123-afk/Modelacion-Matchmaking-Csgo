@@ -117,36 +117,50 @@ def _fmt_es_filter(valor):
 
 
 def auto_select_default_variables(df):
-    """Selecciona de forma inteligente las variables discretas y continuas óptimas según las columnas presentes."""
+    """Selecciona de forma inteligente las variables discretas y continuas óptimas según las columnas presentes, sin sobrescribir selecciones válidas."""
     cols = list(df.columns)
     
-    # Selección discreta:
-    # Prioridad: 'att_rank' -> 'round' -> 'ct_alive'
-    if 'att_rank' in cols and df['att_rank'].nunique() > 1:
-        DATASET_STATE['discrete_col'] = 'att_rank'
-    elif 'round' in cols:
-        DATASET_STATE['discrete_col'] = 'round'
-    elif 'ct_alive' in cols:
-        DATASET_STATE['discrete_col'] = 'ct_alive'
-    else:
-        sug = suggest_discrete_columns(df)
-        if sug:
-            DATASET_STATE['discrete_col'] = sug[0]
+    # Selección discreta: solo asignar si no existe ya una selección válida
+    if not DATASET_STATE.get('discrete_col') or DATASET_STATE['discrete_col'] not in cols:
+        if 'att_rank' in cols and df['att_rank'].nunique() > 1:
+            DATASET_STATE['discrete_col'] = 'att_rank'
+        elif 'round' in cols:
+            DATASET_STATE['discrete_col'] = 'round'
+        elif 'ct_alive' in cols:
+            DATASET_STATE['discrete_col'] = 'ct_alive'
+        else:
+            sug = suggest_discrete_columns(df)
+            if sug:
+                DATASET_STATE['discrete_col'] = sug[0]
 
-    # Selección continua:
-    # Prioridad: 'duration' -> 'seconds' -> 'hp_dmg' -> 'ct_eq_val'
-    if 'duration' in cols:
-        DATASET_STATE['continuous_col'] = 'duration'
-    elif 'seconds' in cols:
-        DATASET_STATE['continuous_col'] = 'seconds'
-    elif 'hp_dmg' in cols:
-        DATASET_STATE['continuous_col'] = 'hp_dmg'
-    elif 'ct_eq_val' in cols:
-        DATASET_STATE['continuous_col'] = 'ct_eq_val'
-    else:
-        sug = suggest_continuous_columns(df)
-        if sug:
-            DATASET_STATE['continuous_col'] = sug[0]
+    # Selección continua: solo asignar si no existe ya una selección válida
+    if not DATASET_STATE.get('continuous_col') or DATASET_STATE['continuous_col'] not in cols:
+        if 'duration' in cols:
+            DATASET_STATE['continuous_col'] = 'duration'
+        elif 'seconds' in cols:
+            DATASET_STATE['continuous_col'] = 'seconds'
+        elif 'hp_dmg' in cols:
+            DATASET_STATE['continuous_col'] = 'hp_dmg'
+        elif 'ct_eq_val' in cols:
+            DATASET_STATE['continuous_col'] = 'ct_eq_val'
+        else:
+            sug = suggest_continuous_columns(df)
+            if sug:
+                DATASET_STATE['continuous_col'] = sug[0]
+
+
+@app.context_processor
+def inject_global_state():
+    """Inyecta el estado global de variables y dataset a todas las plantillas Jinja."""
+    df = get_df()
+    return {
+        'active_discrete_col': DATASET_STATE.get('discrete_col') or 'att_rank',
+        'active_continuous_col': DATASET_STATE.get('continuous_col') or 'seconds',
+        'is_dataset_cleaned': DATASET_STATE.get('clean_df') is not None,
+        'dataset_rows': len(df) if df is not None else 0,
+        'dataset_cols': len(df.columns) if df is not None else 0,
+    }
+
 
 
 # =============================================================================

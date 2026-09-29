@@ -227,6 +227,14 @@ async function initDatasetExplorer() {
         if (initData.success) {
             currentDatasetInfo = initData.info;
             updateUIWithDataset(initData.info);
+            if (initData.discrete_col) {
+                const b = document.getElementById('sidebarDiscreteBadge');
+                if (b) b.textContent = initData.discrete_col;
+            }
+            if (initData.continuous_col) {
+                const b = document.getElementById('sidebarContinuousBadge');
+                if (b) b.textContent = initData.continuous_col;
+            }
             // Marcar archivo seleccionado en el dropdown
             for (let i = 0; i < select.options.length; i++) {
                 if (select.options[i].value === initData.info.filepath) {
@@ -456,6 +464,13 @@ async function selectVariable(colName, type) {
         if (res.success) {
             showNotification(`Variable ${type === 'discrete' ? 'discreta' : 'continua'} fijada en '${colName}'.`, 'success');
             loadSuggestions();
+            if (type === 'discrete') {
+                const b = document.getElementById('sidebarDiscreteBadge');
+                if (b) b.textContent = colName;
+            } else if (type === 'continuous') {
+                const b = document.getElementById('sidebarContinuousBadge');
+                if (b) b.textContent = colName;
+            }
         }
     } catch (e) {
         showNotification('Error al seleccionar variable: ' + e.message, 'danger');
