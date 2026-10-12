@@ -36,6 +36,7 @@ from statistics import (
     dagostino_test, ks_2samp_test, mann_whitney_test, qq_plot_data, interpret_pvalue
 )
 from matchmaking import MatchmakingSimulator
+from integradora import run_integradora_study, build_integradora_markdown
 from utils import (
     NumpyEncoder, safe_float, safe_int, format_params,
     calculate_descriptive_stats, frequency_table, histogram_data,
@@ -91,7 +92,8 @@ DATASET_STATE = {
     'continuous_sim_params': None,
     'cleaning_summary': None,
     'alpha': 0.05,
-    'matchmaking_results': None
+    'matchmaking_results': None,
+    'integradora_results': None
 }
 
 
@@ -409,6 +411,55 @@ def report_page():
                            discrete_selected=DATASET_STATE['discrete_selected'],
                            continuous_selected=DATASET_STATE['continuous_selected'],
                            cleaning_summary=DATASET_STATE['cleaning_summary'])
+
+
+@app.route('/integradora')
+def integradora_page():
+    """APARTADO NUEVO: Actividad Integradora (Construcción, Simulación y Análisis del Modelo)."""
+    ensure_distributions_fitted()
+    return render_template('integradora.html',
+                           discrete_col=DATASET_STATE['discrete_col'],
+                           continuous_col=DATASET_STATE['continuous_col'],
+                           discrete_selected=DATASET_STATE['discrete_selected'],
+                           continuous_selected=DATASET_STATE['continuous_selected'])
+
+
+@app.route('/api/integradora/run', methods=['GET', 'POST'])
+def api_integradora_run():
+    """Ejecuta el estudio multirréplica completo de los 12 puntos de la Actividad Integradora."""
+    try:
+        ensure_distributions_fitted()
+        df = get_df()
+        cfg = request.get_json(silent=True) or {}
+        study = run_integradora_study(df=df, state=DATASET_STATE, config=cfg)
+        DATASET_STATE['integradora_results'] = study
+        return jsonify({'success': True, 'study': study})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/integradora/markdown')
+def api_integradora_markdown():
+    """Descarga el entregable completo de la Actividad Integradora en formato Markdown (.md)."""
+    try:
+        ensure_distributions_fitted()
+        df = get_df()
+        cfg = {k: v for k, v in request.args.items()}
+        study = DATASET_STATE.get('integradora_results')
+        if not study or cfg:
+            study = run_integradora_study(df=df, state=DATASET_STATE, config=cfg)
+            DATASET_STATE['integradora_results'] = study
+        md_content = build_integradora_markdown(study)
+        return (
+            md_content,
+            200,
+            {
+                'Content-Type': 'text/markdown; charset=utf-8',
+                'Content-Disposition': 'attachment; filename=Actividad_Integradora_Matchmaking_CSGO.md'
+            }
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # =============================================================================

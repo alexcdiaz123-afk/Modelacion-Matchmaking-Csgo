@@ -1,0 +1,1477 @@
+{% extends "base.html" %}
+
+{% block title %}Actividad Integradora — Construcción, Simulación y Análisis del Modelo{% endblock %}
+
+{% block extra_css %}
+<style>
+.integradora-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: sticky;
+    top: 10px;
+    z-index: 900;
+    box-shadow: var(--shadow);
+}
+.integradora-nav a {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--bg-card-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+.integradora-nav a:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.pipeline-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.pipeline-node {
+    padding: 8px 12px;
+    background: var(--bg-card-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.pipeline-arrow {
+    color: var(--accent);
+    font-weight: 700;
+}
+.section-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #17100D;
+    font-weight: 800;
+    font-size: 0.85rem;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+.formula-card {
+    background: #1A120E;
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+@media print {
+    .sidebar, .integradora-nav, .no-print {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <span class="badge bg-warning text-dark fw-bold text-uppercase mb-2 px-3 py-1">Apartado Nuevo — Sustentación Final</span>
+        <h1 class="page-title mb-1">Actividad Integradora: Construcción, Simulación y Análisis del Modelo</h1>
+        <p class="page-subtitle mb-0">
+            Estudio estocástico multirréplica del sistema de Matchmaking 5v5 en CS:GO a partir de las distribuciones ajustadas
+            (<span class="text-warning fw-bold">{{ discrete_col }} &sim; {{ discrete_selected }}</span> y
+            <span class="text-info fw-bold">{{ continuous_col }} &sim; {{ continuous_selected }}</span>)
+        </p>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <button class="btn btn-outline-warning" onclick="downloadIntegradoraMarkdown()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar Entregable (.md)
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir / Sustentación PDF
+        </button>
+    </div>
+</div>
+
+<!-- Flujo del Producto Final Esperado -->
+<div class="card mb-4" style="border-top: 3px solid var(--accent);">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <span class="small text-uppercase fw-bold text-warning">Flujo Metodológico del Producto Final Esperado</span>
+        <span class="badge bg-dark border border-secondary text-light">Trazabilidad Completa (12 Etapas)</span>
+    </div>
+    <div class="card-body py-3">
+        <div class="pipeline-flow">
+            <span class="pipeline-node">1. Sistema previo (CS:GO)</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">2. Problema de simulación</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">3. Variables y parámetros</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">4. Relaciones lógico-matemáticas</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">5. Modelo DES</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">6. Verificación y validación</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">7. Simulación multirréplica</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">8. Variable de interés (W)</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">9. Pruebas de hipótesis</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">10. Intervalo de confianza</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node">11. Escenarios y sensibilidad</span><span class="pipeline-arrow">&rarr;</span>
+            <span class="pipeline-node" style="border-color: var(--success); color: var(--success);">12. Conclusiones y decisión</span>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de navegación rápida por los 12 apartados -->
+<div class="integradora-nav mb-4 no-print">
+    <a href="#sec-1">1. Sistema</a>
+    <a href="#sec-2">2. Problema</a>
+    <a href="#sec-3">3. Variables</a>
+    <a href="#sec-4">4. Relaciones</a>
+    <a href="#sec-5">5. Modelo</a>
+    <a href="#sec-6">6. Verificación y Validación</a>
+    <a href="#sec-7">7. Diseño Experimental</a>
+    <a href="#sec-8">8. Estudio Estadístico</a>
+    <a href="#sec-9">9. Pruebas de Hipótesis</a>
+    <a href="#sec-10">10. Intervalo de Confianza</a>
+    <a href="#sec-11">11. Escenarios y Sensibilidad</a>
+    <a href="#sec-12">12. Conclusiones y Fuentes</a>
+</div>
+
+<!-- Panel de Control Experimental Interactivo -->
+<div class="card mb-4 no-print" style="border-left: 4px solid var(--info);">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-info">Panel de Control del Experimento de Simulación (Multirréplica)</h5>
+        <span class="badge bg-dark border border-secondary text-muted">Motor PCG64 + Knuth + Transformada Inversa</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Réplicas ($R$)</label>
+                <input type="number" class="form-control" id="intReplicas" value="30" min="5" max="100">
+                <small class="text-muted">Recomendado: $R \ge 30$ (TLC)</small>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Horizonte ($N$ jug/rép)</label>
+                <input type="number" class="form-control" id="intNPlayers" value="150" min="50" max="500" step="10">
+                <small class="text-muted">Solicitudes por corrida</small>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Umbral Actual ($\theta_{\text{actual}}$)</label>
+                <input type="number" class="form-control" id="intThetaBase" value="0.20" min="0.08" max="0.60" step="0.02">
+                <small class="text-muted">Política base actual</small>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Umbral Propuesto ($\theta_{\text{prop}}$)</label>
+                <input type="number" class="form-control" id="intThetaProp" value="0.28" min="0.08" max="0.60" step="0.02">
+                <small class="text-muted">Escenario alternativo</small>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Inter-llegada ($\beta_{\text{arr}}$ s)</label>
+                <input type="number" class="form-control" id="intInterArrival" value="2.5" min="0.5" max="10.0" step="0.5">
+                <small class="text-muted">Media $\text{Exp}(\beta_{\text{arr}})$</small>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Meta SLA ($\mu_0$ s)</label>
+                <input type="number" class="form-control" id="intSlaTarget" value="45.0" min="5.0" max="180.0" step="5.0">
+                <small class="text-muted">Umbral máx. espera $H_0$</small>
+            </div>
+        </div>
+        <div class="row g-3 mt-1 align-items-end">
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Significancia ($\alpha$)</label>
+                <select class="form-select" id="intAlpha">
+                    <option value="0.01">α = 0.01 (IC 99%)</option>
+                    <option value="0.05" selected>α = 0.05 (IC 95%)</option>
+                    <option value="0.10">α = 0.10 (IC 90%)</option>
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Jugadores / Partida ($M$)</label>
+                <input type="number" class="form-control" id="intPlayersPerMatch" value="10" min="4" max="20">
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Capacidad Cola ($K_{\max}$)</label>
+                <input type="number" class="form-control" id="intMaxQueue" value="100" min="30" max="300">
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-uppercase fw-bold">Semilla Base</label>
+                <input type="number" class="form-control" id="intSeed" value="42">
+            </div>
+            <div class="col-md-4 col-sm-12">
+                <button class="btn btn-primary w-100 py-2 fw-bold" id="btnRunIntegradora" onclick="runIntegradora()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Ejecutar Simulación y Actualizar 12 Apartados
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Spinner de carga -->
+<div id="intLoading" class="card mb-4">
+    <div class="card-body text-center py-5">
+        <div class="spinner-border text-warning mb-3" role="status"></div>
+        <h5 class="text-light">Ejecutando réplicas estocásticas, pruebas de hipótesis y análisis de escenarios...</h5>
+        <p class="text-muted mb-0">Reutilizando parámetros MLE del dataset real de CS:GO y verificando invariantes del modelo.</p>
+    </div>
+</div>
+
+<!-- Contenedor Principal de Resultados -->
+<div id="intMainContent" style="display: none;">
+
+    <!-- KPIs Resumen Ejecutivo -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card accent">
+            <div class="stat-value" id="kpiMeanWait">—</div>
+            <div class="stat-label">Tiempo Espera Medio ($\overline{W}$)</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-value" id="kpiCI95">—</div>
+            <div class="stat-label" id="kpiCILabel">Intervalo de Confianza (95%)</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value" id="kpiMatchRate">—</div>
+            <div class="stat-label">Tasa Emparejamiento ($\overline{\rho}$)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-warning" id="kpiCompat">—</div>
+            <div class="stat-label">Compatibilidad Media ($\overline{C}$)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-info" id="kpiPropWait">—</div>
+            <div class="stat-label">Espera Escenario Propuesto</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value" id="kpiVerifStatus">7 / 7 PASS</div>
+            <div class="stat-label">Verificación del Modelo</div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 1. DEFINICIÓN DEL SISTEMA                                          -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-1">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">1</span>
+            <h5 class="mb-0">Definición del Sistema (Retomado y Articulado con Actividades Previas)</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <strong>Funcionamiento general del sistema:</strong>
+                <span id="s1Funcionamiento"></span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-warning fw-bold text-uppercase small mb-2">Elementos que lo componen</h6>
+                        <ul class="mb-0 small text-light" id="s1Elementos"></ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-info fw-bold text-uppercase small mb-2">Entidades y Recursos</h6>
+                        <p class="small text-muted fw-bold mb-1">Entidades:</p>
+                        <ul class="small text-light mb-2" id="s1Entidades"></ul>
+                        <p class="small text-muted fw-bold mb-1">Recursos:</p>
+                        <ul class="small text-light mb-0" id="s1Recursos"></ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-success fw-bold text-uppercase small mb-2">Entradas y Salidas del Sistema</h6>
+                        <p class="small text-muted fw-bold mb-1">Entradas (Inputs):</p>
+                        <ul class="small text-light mb-2" id="s1Entradas"></ul>
+                        <p class="small text-muted fw-bold mb-1">Salidas (Outputs):</p>
+                        <ul class="small text-light mb-0" id="s1Salidas"></ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-warning fw-bold text-uppercase small mb-2">Procesos y Restricciones Relevantes</h6>
+                        <p class="small text-muted fw-bold mb-1">Procesos internos:</p>
+                        <ul class="small text-light mb-2" id="s1Procesos"></ul>
+                        <p class="small text-muted fw-bold mb-1">Restricciones operativas:</p>
+                        <ul class="small text-light mb-0" id="s1Restricciones"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 2. PLANTEAMIENTO DEL PROBLEMA DE SIMULACIÓN                        -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-2">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">2</span>
+            <h5 class="mb-0">Planteamiento del Problema de Simulación</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="hypothesis-box h-100">
+                        <h6 class="text-warning">Situación que se desea analizar</h6>
+                        <p class="mb-0" id="s2Situacion"></p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="hypothesis-box h-100">
+                        <h6 class="text-danger">Causa o situación que motiva el estudio</h6>
+                        <p class="mb-0" id="s2Causa"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <div class="hypothesis-box h-100" style="border-left: 4px solid var(--info);">
+                        <h6 class="text-info">Variable de Interés para Evaluar el Problema</h6>
+                        <p class="mb-2" id="s2Variable"></p>
+                        <small class="text-muted d-block"><strong>Indicadores secundarios:</strong> <span id="s2Secundarias"></span></small>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="hypothesis-box h-100" style="border-left: 4px solid var(--accent);">
+                        <h6 class="text-warning">Pregunta de Investigación a Responder mediante la Simulación</h6>
+                        <p class="fs-6 fw-semibold text-light mb-0 fst-italic" id="s2Pregunta"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 3. VARIABLES Y PARÁMETROS DEL MODELO                               -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <span class="section-badge">3</span>
+                <h5 class="mb-0">Variables y Parámetros del Modelo</h5>
+            </div>
+            <span class="badge bg-success">Reutiliza ajustes MLE/Momentos previos + Proceso de llegada Poisson</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nombre / Símbolo</th>
+                            <th>Descripción</th>
+                            <th>Tipo de Variable</th>
+                            <th>Unidad</th>
+                            <th>Fuente de Información</th>
+                            <th>Distribución Utilizada</th>
+                            <th>Parámetros</th>
+                        </tr>
+                    </thead>
+                    <tbody id="s3VariablesTableBody"></tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-dark border-top border-secondary small text-secondary">
+                <strong class="text-warning">Nota de trazabilidad metodológica:</strong> Se conservan íntegramente las distribuciones óptimas determinadas en las actividades anteriores (<strong>{{ discrete_selected }}</strong> para <code>{{ discrete_col }}</code> y <strong>{{ continuous_selected }}</strong> para <code>{{ continuous_col }}</code>) y se incorpora justificadamente la variable aleatoria $\Delta t_i \sim \text{Exponencial}(\beta_{\text{arr}})$ para modelar el proceso estocástico de arribos a la cola de emparejamiento (Law, 2015).
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 4. RELACIONES LÓGICO-MATEMÁTICAS DEL SISTEMA                       -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-4">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">4</span>
+            <h5 class="mb-0">Relaciones Lógico-Matemáticas del Sistema</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary small mb-3">
+                A continuación se establecen las ecuaciones, inecuaciones, condiciones lógicas, transformaciones de escala, restricciones de capacidad y reglas de decisión que gobiernan el modelo de simulación:
+            </p>
+            <div id="s4RelacionesList"></div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 5. CONSTRUCCIÓN DEL MODELO DE SIMULACIÓN                           -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-5">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <span class="section-badge">5</span>
+                <h5 class="mb-0">Construcción del Modelo de Simulación y Evidencia de Funcionamiento</h5>
+            </div>
+            <span class="badge bg-info text-dark fw-bold">Modelo Funcional DES en Python</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-warning small text-uppercase fw-bold">1. Motor de Generación (simulation.py)</h6>
+                        <p class="small text-secondary mb-0">
+                            Utiliza el generador congruencial permutado de 64 bits <code>PCG64</code> de NumPy. Sobre él aplica el <strong>Algoritmo de Knuth</strong> para muestrear el rango discreto y la <strong>Transformada Inversa Analítica</strong> para la métrica continua y los tiempos entre llegadas exponenciales.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-info small text-uppercase fw-bold">2. Motor de Cola (matchmaking.py)</h6>
+                        <p class="small text-secondary mb-0">
+                            La clase <code>MatchmakingSimulator</code> gestiona el reloj de simulación $t_i$, el buffer de espera $Q(t)$ con límite $K_{\max}$, la evaluación matricial de distancias normalizadas $d(p_i, p_j) \le \theta$, el filtro de cohesión $\le 1.5\theta$ y el despacho de partidas de $M=10$ jugadores.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-success small text-uppercase fw-bold">3. Orquestador Experimental (integradora.py)</h6>
+                        <p class="small text-secondary mb-0">
+                            El módulo <code>run_integradora_study</code> ejecuta $R$ réplicas independientes con semillas disjuntas ($\text{seed}_r = \text{seed}_0 + 1009(r-1)$), verifica invariantes, calcula estadísticos, pruebas $t$/Welch/Wilcoxon, intervalos de confianza y curvas de sensibilidad.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                            <span class="small fw-bold text-light">Evidencia de Ejecución (Réplica #1): Dinámica de Cola $Q(t)$ y Partidas Creadas</span>
+                            <span class="badge bg-secondary" id="s5DemoBadge">Réplica #1</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec5QueueTimeline" style="height: 300px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                            <span class="small fw-bold text-light">Muestra de Partidas Ensambladas (Réplica #1)</span>
+                            <span class="badge bg-success" id="s5MatchesCountBadge">0 partidas</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Partida</th>
+                                            <th>Reloj ($t$)</th>
+                                            <th>Rango Prom.</th>
+                                            <th>Compatibilidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="s5MatchesTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 6. VERIFICACIÓN Y VALIDACIÓN                                       -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-6">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">6</span>
+            <h5 class="mb-0">Verificación y Validación del Modelo</h5>
+        </div>
+        <div class="card-body">
+            <h6 class="text-warning fw-bold text-uppercase small mb-2">6.1 Verificación Computacional (Invariantes Lógicos y Consistencia Interna)</h6>
+            <div class="table-container mb-4">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Aspecto Verificado</th>
+                            <th>Condición Matemática / Lógica</th>
+                            <th>Evidencia Empírica en las $R$ Réplicas</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="s6VerificationTableBody"></tbody>
+                </table>
+            </div>
+
+            <h6 class="text-info fw-bold text-uppercase small mb-2">6.2 Validación Estadística frente al Dataset Real y Limitaciones Declaradas</h6>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <div class="fw-bold text-light mb-2">Contraste de Variables de Entrada (Dataset Real vs. Simulador)</div>
+                        <div id="s6ValidationInputs" class="small text-secondary"></div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <div class="fw-bold text-warning mb-2">Validación Operacional de la Salida y Limitaciones del Sistema</div>
+                        <div id="s6ValidationLimitations" class="small text-secondary" style="white-space: pre-line;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 7. DISEÑO Y EJECUCIÓN DE LA SIMULACIÓN                             -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-7">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">7</span>
+            <h5 class="mb-0">Diseño y Ejecución de la Simulación</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">Parámetro de Diseño</th>
+                            <th style="width: 33%;">Especificación Experimental Adoptada</th>
+                            <th style="width: 45%;">Justificación Metodológica</th>
+                        </tr>
+                    </thead>
+                    <tbody id="s7DesignTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 8. ESTUDIO ESTADÍSTICO DE LA VARIABLE DE INTERÉS                   -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-8">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <span class="section-badge">8</span>
+                <h5 class="mb-0">Estudio Estadístico de la Variable de Interés ($W$: Tiempo de Espera en Cola)</h5>
+            </div>
+            <div class="btn-group btn-group-sm no-print" role="group">
+                <button type="button" class="btn btn-primary" id="btnViewReplicasHist" onclick="switchSec8HistMode('replicas')">Medias por Réplica ($\overline{W}_r$)</button>
+                <button type="button" class="btn btn-secondary" id="btnViewPooledHist" onclick="switchSec8HistMode('pooled')">Jugadores Individuales ($W_i$)</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Tabla de Estadísticos Descriptivos -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <h6 class="text-warning small text-uppercase fw-bold mb-2">Medidas de Tendencia Central, Dispersión y Forma</h6>
+                    <div class="table-container">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Estadístico</th>
+                                    <th>Medias de Réplica ($\overline{W}_r$, $R$ obs.)</th>
+                                    <th>Jugadores Individuales ($W_i$)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s8DescriptiveStatsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h6 class="text-info small text-uppercase fw-bold mb-2">Tabla deResultados por Réplica (1 a $R$)</h6>
+                    <div class="table-container" style="max-height: 360px; overflow-y: auto;">
+                        <table class="table table-sm mb-0">
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th>Rép #</th>
+                                    <th>Semilla</th>
+                                    <th>Partidas</th>
+                                    <th>Emparejados</th>
+                                    <th>Tasa (%)</th>
+                                    <th>Media $\overline{W}_r$ (s)</th>
+                                    <th>Mediana (s)</th>
+                                    <th>Compat. (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s8ReplicasTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos de la Variable de Interés -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light" id="s8HistTitle">Histograma, Densidad KDE y Tendencia Central de la Variable de Interés</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec8Histogram" style="height: 330px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light">Estabilización y Convergencia de la Media Acumulada ($\overline{\overline{W}}_r \pm \text{IC } 95\%$)</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec8Convergence" style="height: 330px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-3">
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light">Diagrama de Caja (Boxplot) y Dispersión de Medias por Réplica</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec8Boxplot" style="height: 280px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light">Función de Distribución Acumulada Empírica (ECDF) de Tiempos de Espera</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec8Ecdf" style="height: 280px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mb-0">
+                <strong class="text-warning d-block mb-1">Análisis e Interpretación del Comportamiento de la Variable de Interés:</strong>
+                <div id="s8InterpretationText" style="white-space: pre-line;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 9. PRUEBAS DE HIPÓTESIS                                            -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-9">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">9</span>
+            <h5 class="mb-0">Pruebas de Hipótesis sobre la Variable de Interés</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <!-- Prueba 1: Una muestra contra SLA -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-warning text-dark fw-bold">Prueba 1 — Una Muestra (Estándar SLA)</span>
+                            <span class="badge" id="s9Badge1">—</span>
+                        </div>
+                        <h6 class="text-light fw-bold mb-3" id="s9Title1">Prueba t de Student para una muestra</h6>
+                        <div class="table-container mb-3">
+                            <table class="table table-sm mb-0">
+                                <tbody id="s9Table1Body"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-2 rounded border border-secondary mb-2 small">
+                            <strong class="text-warning">Decisión Estadística:</strong> <span id="s9Decision1"></span>
+                        </div>
+                        <div class="p-2 rounded border border-secondary mb-2 small">
+                            <strong class="text-info">Interpretación en el Sistema:</strong> <span id="s9Interp1"></span>
+                        </div>
+                        <div class="small text-muted">
+                            <strong>Justificación de la prueba:</strong> <span id="s9Just1"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prueba 2: Dos muestras Actual vs Propuesto -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-info text-dark fw-bold">Prueba 2 — Dos Muestras (Actual vs. Propuesto)</span>
+                            <span class="badge" id="s9Badge2">—</span>
+                        </div>
+                        <h6 class="text-light fw-bold mb-3" id="s9Title2">Prueba t de Welch para dos muestras independientes</h6>
+                        <div class="table-container mb-3">
+                            <table class="table table-sm mb-0">
+                                <tbody id="s9Table2Body"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-2 rounded border border-secondary mb-2 small">
+                            <strong class="text-warning">Decisión Estadística:</strong> <span id="s9Decision2"></span>
+                        </div>
+                        <div class="p-2 rounded border border-secondary mb-2 small">
+                            <strong class="text-info">Interpretación en el Sistema:</strong> <span id="s9Interp2"></span>
+                        </div>
+                        <div class="small text-muted">
+                            <strong>Justificación de la prueba:</strong> <span id="s9Just2"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 10. INTERVALO DE CONFIANZA                                         -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-10">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge">10</span>
+            <h5 class="mb-0">Intervalo de Confianza para el Parámetro de Interés</h5>
+        </div>
+        <div class="card-body">
+            <div class="formula-card mb-3">
+                <div class="small text-warning fw-bold mb-1">Fórmula del Intervalo de Confianza ($t$ de Student con $gl = R - 1$):</div>
+                $$\text{IC}_{1-\alpha}(\mu_W) = \overline{W} \pm t_{\alpha/2,\, R-1} \cdot \frac{S_W}{\sqrt{R}}$$
+            </div>
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-7">
+                    <div class="table-container">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Parámetro de Interés</th>
+                                    <th>Nivel Confianza</th>
+                                    <th>Estimación Puntual</th>
+                                    <th>Error Est. ($SE$)</th>
+                                    <th>Margen Error</th>
+                                    <th>Intervalo Obtenido $[LI, LS]$</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s10CITableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-success mt-3 mb-0 small" id="s10CIInterpretation"></div>
+                </div>
+                <div class="col-lg-5">
+                    <div id="chartSec10CI" style="height: 270px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 11. ANÁLISIS DE ESCENARIOS Y SENSIBILIDAD                          -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-11">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <span class="section-badge">11</span>
+                <h5 class="mb-0">Análisis de Escenarios Operativos y Sensibilidad Paramétrica</h5>
+            </div>
+            <span class="badge bg-warning text-dark fw-bold">4 Escenarios Contrastados + Frontera de Sensibilidad en θ</span>
+        </div>
+        <div class="card-body">
+            <div class="table-container mb-4">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Escenario</th>
+                            <th>Descripción de Política / Capacidad</th>
+                            <th>Umbral $\theta$</th>
+                            <th>Espera Media $\overline{W}$ (s)</th>
+                            <th>IC $(1-\alpha)$ (s)</th>
+                            <th>Cambio vs. Actual</th>
+                            <th>Tasa Emparej. (%)</th>
+                            <th>Compatibilidad (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="s11ScenariosTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light">Comparación de Distribuciones de Espera por Escenario (Boxplots)</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec11ScenariosBox" style="height: 330px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card mb-0 h-100">
+                        <div class="card-header py-2">
+                            <span class="small fw-bold text-light">Curva de Sensibilidad: Tiempo de Espera $\overline{W}(\theta)$ vs. Compatibilidad $\overline{C}(\theta)$</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartSec11Sensitivity" style="height: 330px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- 12. CONCLUSIONES, TOMA DE DECISIONES Y FUENTES DE INFORMACIÓN      -->
+    <!-- ================================================================== -->
+    <div class="card mb-4" id="sec-12" style="border-top: 4px solid var(--success);">
+        <div class="card-header d-flex align-items-center">
+            <span class="section-badge" style="background: var(--success);">12</span>
+            <h5 class="mb-0">Conclusiones, Toma de Decisiones y Fuentes de Información</h5>
+        </div>
+        <div class="card-body">
+            <div class="p-3 rounded bg-dark border border-secondary mb-3">
+                <h6 class="text-warning fw-bold text-uppercase small mb-2">Respuesta Argumentada a la Pregunta de Simulación</h6>
+                <p class="mb-0 text-light" id="s12Respuesta"></p>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100">
+                        <h6 class="text-info fw-bold text-uppercase small mb-2">Sustento en Evidencia Estadística</h6>
+                        <ul class="small text-light mb-0" id="s12SustentoList"></ul>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="p-3 rounded bg-dark border border-secondary h-100" style="border-left: 4px solid var(--success) !important;">
+                        <h6 class="text-success fw-bold text-uppercase small mb-2">Recomendación y Toma de Decisiones para el Sistema</h6>
+                        <div class="small text-light" id="s12Recomendacion" style="white-space: pre-line;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 rounded bg-dark border border-secondary">
+                <h6 class="text-warning fw-bold text-uppercase small mb-2">Fuentes de Información y Referencias Bibliográficas (APA 7)</h6>
+                <ul class="small text-secondary mb-0" id="s12ReferenciasList"></ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentIntegradoraStudy = null;
+let sec8HistMode = 'replicas';
+
+function collectConfig() {
+    return {
+        n_replicas: parseInt(document.getElementById('intReplicas').value) || 30,
+        n_players: parseInt(document.getElementById('intNPlayers').value) || 150,
+        threshold_baseline: parseFloat(document.getElementById('intThetaBase').value) || 0.20,
+        threshold_proposed: parseFloat(document.getElementById('intThetaProp').value) || 0.28,
+        inter_arrival_scale: parseFloat(document.getElementById('intInterArrival').value) || 2.5,
+        sla_target_wait: parseFloat(document.getElementById('intSlaTarget').value) || 45.0,
+        alpha: parseFloat(document.getElementById('intAlpha').value) || 0.05,
+        players_per_match: parseInt(document.getElementById('intPlayersPerMatch').value) || 10,
+        max_queue_size: parseInt(document.getElementById('intMaxQueue').value) || 100,
+        seed: parseInt(document.getElementById('intSeed').value) || 42
+    };
+}
+
+async function runIntegradora() {
+    const cfg = collectConfig();
+    const btn = document.getElementById('btnRunIntegradora');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Ejecutando Simulación Multirréplica...';
+
+    document.getElementById('intLoading').style.display = 'block';
+    document.getElementById('intMainContent').style.display = 'none';
+
+    try {
+        const resp = await fetch('/api/integradora/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cfg)
+        });
+        const data = await resp.json();
+        btn.disabled = false;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Ejecutar Simulación y Actualizar 12 Apartados';
+        document.getElementById('intLoading').style.display = 'none';
+
+        if (data.success && data.study) {
+            currentIntegradoraStudy = data.study;
+            document.getElementById('intMainContent').style.display = 'block';
+            renderIntegradoraStudy(data.study);
+            showNotification(`Estudio integrador completado (${data.study.config.n_replicas} réplicas × 4 escenarios).`, 'success');
+        } else {
+            showNotification('Error al ejecutar estudio: ' + (data.error || 'Desconocido'), 'danger');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Ejecutar Simulación y Actualizar 12 Apartados';
+        document.getElementById('intLoading').style.display = 'none';
+        showNotification('Error de conexión: ' + err.message, 'danger');
+    }
+}
+
+function renderListItems(elId, items) {
+    const ul = document.getElementById(elId);
+    ul.innerHTML = (items || []).map(x => `<li class="mb-1">${x}</li>`).join('');
+}
+
+function renderIntegradoraStudy(st) {
+    const cfg = st.config;
+    const s1 = st.sec1_sistema;
+    const s2 = st.sec2_problema;
+    const s3 = st.sec3_variables;
+    const s4 = st.sec4_relaciones;
+    const s5 = st.sec5_modelo;
+    const s6 = st.sec6_verificacion_validacion;
+    const s7 = st.sec7_diseno;
+    const s8 = st.sec8_estudio_estadistico;
+    const s9 = st.sec9_hipotesis;
+    const s10 = st.sec10_intervalos;
+    const s11 = st.sec11_escenarios;
+    const s12 = st.sec12_conclusiones;
+
+    // KPIs superiores
+    const cib = s10.ci_wait_baseline;
+    const cip = s10.ci_wait_proposed;
+    document.getElementById('kpiMeanWait').textContent = `${s8.replica_means_stats.mean.toFixed(2)} s`;
+    document.getElementById('kpiCI95').textContent = `[${cib.lower_bound.toFixed(2)}, ${cib.upper_bound.toFixed(2)}] s`;
+    document.getElementById('kpiCILabel').textContent = `Intervalo de Confianza (${cib.confidence_level_pct}%)`;
+    document.getElementById('kpiMatchRate').textContent = `${s8.match_rate_stats.mean.toFixed(1)}%`;
+    document.getElementById('kpiCompat').textContent = `${s8.compat_stats.mean.toFixed(1)}%`;
+    document.getElementById('kpiPropWait').textContent = `${cip.point_estimate.toFixed(2)} s`;
+    const passCount = s6.verification_checks.filter(c => c.passed).length;
+    document.getElementById('kpiVerifStatus').textContent = `${passCount} / ${s6.verification_checks.length} PASS`;
+
+    // 1. Definición del sistema
+    document.getElementById('s1Funcionamiento').textContent = s1.funcionamiento;
+    renderListItems('s1Elementos', s1.elementos);
+    renderListItems('s1Entidades', s1.entidades);
+    renderListItems('s1Recursos', s1.recursos);
+    renderListItems('s1Entradas', s1.entradas);
+    renderListItems('s1Salidas', s1.salidas);
+    renderListItems('s1Procesos', s1.procesos);
+    renderListItems('s1Restricciones', s1.restricciones);
+
+    // 2. Planteamiento del problema
+    document.getElementById('s2Situacion').textContent = s2.situacion_analizar;
+    document.getElementById('s2Causa').textContent = s2.causa_motivacion;
+    document.getElementById('s2Variable').textContent = s2.variable_interes;
+    document.getElementById('s2Secundarias').textContent = s2.variables_secundarias;
+    document.getElementById('s2Pregunta').textContent = s2.pregunta_simulacion;
+
+    // 3. Variables y parámetros
+    const vBody = document.getElementById('s3VariablesTableBody');
+    vBody.innerHTML = s3.map(v => `
+        <tr>
+            <td><strong class="text-warning">${v.nombre}</strong><br><code class="text-info">${v.simbolo}</code></td>
+            <td class="small">${v.descripcion}<br><em class="text-muted">${v.justificacion}</em></td>
+            <td><span class="badge bg-dark border border-secondary text-light">${v.tipo}</span></td>
+            <td class="small">${v.unidad}</td>
+            <td class="small">${v.fuente}</td>
+            <td class="small fw-semibold text-info">${v.distribucion}</td>
+            <td><code class="text-warning small">${v.parametros}</code></td>
+        </tr>
+    `).join('');
+
+    // 4. Relaciones lógico-matemáticas
+    const relDiv = document.getElementById('s4RelacionesList');
+    relDiv.innerHTML = s4.map(r => `
+        <div class="formula-card">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                <strong class="text-warning">${r.id}: ${r.nombre}</strong>
+                <span class="badge bg-dark border border-secondary text-info">${r.categoria}</span>
+            </div>
+            <div class="my-2 text-light">$$ ${r.formula_latex} $$</div>
+            <div class="small text-secondary"><strong>Justificación documental y operativa:</strong> ${r.justificacion}</div>
+        </div>
+    `).join('');
+
+    // 5. Construcción del modelo y evidencia de Réplica #1
+    const rep1 = s5.first_replica;
+    if (rep1) {
+        document.getElementById('s5DemoBadge').textContent = `Réplica #1 (N = ${rep1.total_players} jug., T = ${rep1.horizon_time}s)`;
+        document.getElementById('s5MatchesCountBadge').textContent = `${rep1.matches_created} partidas 5v5`;
+        document.getElementById('s5MatchesTableBody').innerHTML = rep1.matches.map(m => `
+            <tr>
+                <td class="fw-bold text-warning">${m.match_code}</td>
+                <td>${m.creation_time.toFixed(1)} s</td>
+                <td>${m.avg_rank.toFixed(2)}</td>
+                <td><span class="badge bg-success">${m.avg_compatibility}%</span></td>
+            </tr>
+        `).join('');
+
+        Plotly.newPlot('chartSec5QueueTimeline', [
+            {
+                x: rep1.time_points,
+                y: rep1.queue_sizes,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Tamaño de Cola |Q(t)|',
+                line: { color: '#C98A4B', width: 2 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(201, 138, 75, 0.16)'
+            },
+            {
+                x: rep1.time_points,
+                y: rep1.matches_count_timeline,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Partidas Acumuladas M(t)',
+                yaxis: 'y2',
+                line: { color: '#7FA86A', width: 2, dash: 'dot' }
+            }
+        ], {
+            ...plotlyDarkLayout,
+            xaxis: { title: 'Reloj de Simulación t (segundos)', gridcolor: '#4A3527' },
+            yaxis: { title: 'Jugadores en Cola |Q(t)|', gridcolor: '#4A3527' },
+            yaxis2: { title: 'Partidas Creadas', overlaying: 'y', side: 'right', showgrid: false },
+            legend: { orientation: 'h', y: 1.14 },
+            margin: { t: 30, r: 50, l: 55, b: 45 }
+        });
+    }
+
+    // 6. Verificación y Validación
+    document.getElementById('s6VerificationTableBody').innerHTML = s6.verification_checks.map(c => `
+        <tr>
+            <td><code class="text-warning fw-bold">${c.code}</code></td>
+            <td class="fw-semibold">${c.aspect}</td>
+            <td><code>${c.condition}</code></td>
+            <td class="small">${c.evidence}</td>
+            <td>
+                <span class="badge ${c.passed ? 'badge-success' : 'badge-danger'}">
+                    ${c.passed ? 'VERIFICADO (PASS)' : 'REVISAR'}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+
+    const vd = s6.validation.discrete_input;
+    const vc = s6.validation.continuous_input;
+    const vo = s6.validation.operational_output;
+    document.getElementById('s6ValidationInputs').innerHTML = `
+        <div class="mb-2">
+            <strong class="text-warning">1. Variable Discreta (${vd.variable} &sim; ${vd.distribution}):</strong><br>
+            Media empírica real = <code>${vd.real_mean}</code> vs. Media simulada = <code>${vd.sim_mean}</code>
+            (Error relativo = <strong>${vd.mean_error_pct}%</strong>).<br>
+            Desv. Est. real = <code>${vd.real_std}</code> vs. simulada = <code>${vd.sim_std}</code> (Error = ${vd.std_error_pct}%).
+        </div>
+        <div class="mb-2">
+            <strong class="text-info">2. Variable Continua (${vc.variable} &sim; ${vc.distribution}):</strong><br>
+            Media empírica real = <code>${vc.real_mean} s</code> vs. Media simulada = <code>${vc.sim_mean} s</code>
+            (Error relativo = <strong>${vc.mean_error_pct}%</strong>).<br>
+            Desv. Est. real = <code>${vc.real_std} s</code> vs. simulada = <code>${vc.sim_std} s</code> (Error = ${vc.std_error_pct}%).
+        </div>
+        <div>
+            <strong class="text-success">3. Coherencia Operacional de Salida:</strong><br>
+            Espera media simulada $\\overline{W} = ${vo.simulated_mean_wait}\\text{ s}$ (IC: $[${vo.simulated_ci_95[0]}, ${vo.simulated_ci_95[1]}]\\text{ s}$),
+            consistente con tiempos reales de matchmaking competitivo 5v5 (${vo.reference_benchmark_range[0]}–${vo.reference_benchmark_range[1]} s).
+        </div>
+    `;
+    document.getElementById('s6ValidationLimitations').textContent = vo.limitations_explanation;
+
+    // 7. Diseño y ejecución
+    document.getElementById('s7DesignTableBody').innerHTML = `
+        <tr>
+            <td class="fw-bold text-warning">Horizonte de Simulación</td>
+            <td>${s7.horizonte.valor}</td>
+            <td class="small">${s7.horizonte.justificacion}</td>
+        </tr>
+        <tr>
+            <td class="fw-bold text-warning">Número de Réplicas ($R$)</td>
+            <td>${s7.num_replicas.valor}</td>
+            <td class="small">${s7.num_replicas.justificacion}</td>
+        </tr>
+        <tr>
+            <td class="fw-bold text-warning">Condiciones Iniciales</td>
+            <td>${s7.condiciones_iniciales.valor}</td>
+            <td class="small">${s7.condiciones_iniciales.justificacion}</td>
+        </tr>
+        <tr>
+            <td class="fw-bold text-warning">Tamaño de Muestra</td>
+            <td>${s7.tamano_muestra.valor}</td>
+            <td class="small">${s7.tamano_muestra.justificacion}</td>
+        </tr>
+        <tr>
+            <td class="fw-bold text-info">Variables de Entrada</td>
+            <td colspan="2" class="small"><code>${s7.variables_entrada}</code></td>
+        </tr>
+        <tr>
+            <td class="fw-bold text-success">Variables de Salida</td>
+            <td colspan="2" class="small">${s7.variables_salida}</td>
+        </tr>
+    `;
+
+    // 8. Estudio estadístico de la variable de interés
+    const rm = s8.replica_means_stats;
+    const pw = s8.pooled_wait_stats;
+    document.getElementById('s8DescriptiveStatsTableBody').innerHTML = `
+        <tr><td>Tamaño de muestra ($n$)</td><td><strong>${rm.n} réplicas</strong></td><td><strong>${pw.n.toLocaleString()} jugadores</strong></td></tr>
+        <tr><td>Media ($\overline{W}$)</td><td class="text-warning fw-bold">${rm.mean.toFixed(4)} s</td><td>${pw.mean.toFixed(4)} s</td></tr>
+        <tr><td>Mediana ($P_{50}$)</td><td>${rm.median.toFixed(4)} s</td><td>${pw.median.toFixed(4)} s</td></tr>
+        <tr><td>Moda agrupada</td><td>${rm.mode_grouped.toFixed(2)} s</td><td>${pw.mode_grouped.toFixed(2)} s</td></tr>
+        <tr><td>Media recortada (5%)</td><td>${rm.trimmed_mean.toFixed(4)} s</td><td>${pw.trimmed_mean.toFixed(4)} s</td></tr>
+        <tr><td>Desviación Estándar ($S$)</td><td>${rm.std.toFixed(4)} s</td><td>${pw.std.toFixed(4)} s</td></tr>
+        <tr><td>Varianza Muestral ($S^2$)</td><td>${rm.var.toFixed(4)} s²</td><td>${pw.var.toFixed(4)} s²</td></tr>
+        <tr><td>Error Estándar ($SE = S/\sqrt{n}$)</td><td class="text-info fw-bold">${rm.se.toFixed(4)} s</td><td>${pw.se.toFixed(4)} s</td></tr>
+        <tr><td>Mínimo / Máximo</td><td>[${rm.min.toFixed(2)}, ${rm.max.toFixed(2)}] s</td><td>[${pw.min.toFixed(2)}, ${pw.max.toFixed(2)}] s</td></tr>
+        <tr><td>Rango ($Max - Min$)</td><td>${rm.range.toFixed(3)} s</td><td>${pw.range.toFixed(3)} s</td></tr>
+        <tr><td>Rango Intercuartílico ($IQR$)</td><td>${rm.iqr.toFixed(3)} s</td><td>${pw.iqr.toFixed(3)} s</td></tr>
+        <tr><td>Coeficiente de Variación ($CV$)</td><td>${rm.cv_pct.toFixed(2)}%</td><td>${pw.cv_pct.toFixed(2)}%</td></tr>
+        <tr><td>Asimetría (Skewness)</td><td>${rm.skewness.toFixed(4)}</td><td>${pw.skewness.toFixed(4)}</td></tr>
+        <tr><td>Curtosis (Exceso)</td><td>${rm.kurtosis.toFixed(4)}</td><td>${pw.kurtosis.toFixed(4)}</td></tr>
+        <tr><td>Percentiles $P_{10} / P_{25} / P_{75} / P_{90}$</td>
+            <td class="small">${rm.percentiles.p10.toFixed(1)} / ${rm.percentiles.p25.toFixed(1)} / ${rm.percentiles.p75.toFixed(1)} / ${rm.percentiles.p90.toFixed(1)} s</td>
+            <td class="small">${pw.percentiles.p10.toFixed(1)} / ${pw.percentiles.p25.toFixed(1)} / ${pw.percentiles.p75.toFixed(1)} / ${pw.percentiles.p90.toFixed(1)} s</td>
+        </tr>
+    `;
+
+    document.getElementById('s8ReplicasTableBody').innerHTML = s8.replicas_table.map(r => `
+        <tr>
+            <td class="fw-bold text-warning">#${r.replica}</td>
+            <td><code>${r.seed}</code></td>
+            <td>${r.matches_created}</td>
+            <td>${r.players_matched} / ${r.total_players}</td>
+            <td>${r.match_rate.toFixed(1)}%</td>
+            <td class="fw-bold text-light">${r.mean_wait.toFixed(2)} s</td>
+            <td>${r.median_wait.toFixed(2)} s</td>
+            <td><span class="badge bg-dark border border-secondary text-success">${r.compatibility.toFixed(1)}%</span></td>
+        </tr>
+    `).join('');
+
+    document.getElementById('s8InterpretationText').textContent = s8.interpretation;
+    renderSec8Charts(st);
+
+    // 9. Pruebas de hipótesis
+    const h1 = s9.one_sample_sla;
+    const h2 = s9.two_sample_comparison;
+    const b1 = document.getElementById('s9Badge1');
+    b1.className = 'badge ' + (h1.reject_h0_greater ? 'badge-danger' : 'badge-success');
+    b1.textContent = h1.reject_h0_greater ? 'Excede SLA (Rechaza H₀)' : 'Cumple SLA (No rechaza H₀)';
+
+    document.getElementById('s9Table1Body').innerHTML = `
+        <tr><td class="text-muted">Hipótesis Nula ($H_0$)</td><td class="fw-semibold">${h1.h0_formal}</td></tr>
+        <tr><td class="text-muted">Hipótesis Alternativa ($H_1$)</td><td class="fw-semibold">${h1.h1_formal}</td></tr>
+        <tr><td class="text-muted">Nivel de Significancia ($\alpha$)</td><td><code>α = ${h1.alpha}</code> (Grados de libertad $gl = ${h1.df}$)</td></tr>
+        <tr><td class="text-muted">Media Muestral ($\overline{W}$) vs. Meta ($\mu_0$)</td><td>$\overline{W} = ${h1.sample_mean.toFixed(3)}\text{ s}$ vs. $\mu_0 = ${h1.target_mu0.toFixed(2)}\text{ s}$ ($SE = ${h1.standard_error.toFixed(4)}\text{ s}$)</td></tr>
+        <tr><td class="text-muted">Estadístico de Prueba ($t_0$)</td><td class="text-warning fw-bold">t₀ = ${h1.t_statistic.toFixed(4)} (Valor crítico unilateral $t_{\\alpha} = ${h1.t_critical_one_sided.toFixed(4)}$)</td></tr>
+        <tr><td class="text-muted">Valor-$p$</td><td>Unilateral der.: <code>${h1.p_value_greater.toExponential(4)}</code> | Bilateral: <code>${h1.p_value_two_sided.toExponential(4)}</code></td></tr>
+        <tr><td class="text-muted">Respaldo Normalidad / Wilcoxon</td><td class="small">Shapiro-Wilk $p = ${(h1.shapiro_normality.p_value || 0).toFixed(4)}$ | Wilcoxon $p = ${h1.wilcoxon_backup.p_value.toFixed(4)}$</td></tr>
+    `;
+    document.getElementById('s9Decision1').textContent = h1.decision;
+    document.getElementById('s9Interp1').textContent = h1.context_interpretation;
+    document.getElementById('s9Just1').textContent = h1.justification;
+
+    const b2 = document.getElementById('s9Badge2');
+    b2.className = 'badge ' + (h2.reject_h0 ? 'badge-success' : 'badge-warning');
+    b2.textContent = h2.reject_h0 ? 'Diferencia Significativa (Rechaza H₀)' : 'Sin Diferencia Significativa';
+
+    document.getElementById('s9Table2Body').innerHTML = `
+        <tr><td class="text-muted">Hipótesis Nula ($H_0$)</td><td class="fw-semibold">${h2.h0_formal}</td></tr>
+        <tr><td class="text-muted">Hipótesis Alternativa ($H_1$)</td><td class="fw-semibold">${h2.h1_formal}</td></tr>
+        <tr><td class="text-muted">Nivel de Significancia ($\alpha$)</td><td><code>α = ${h2.alpha}</code> ($gl_{\\text{Welch}} = ${h2.df_welch}$)</td></tr>
+        <tr><td class="text-muted">Medias Comparadas</td><td>Actual: <strong>${h2.mean_baseline.toFixed(3)} s</strong> vs. Propuesto: <strong>${h2.mean_proposed.toFixed(3)} s</strong> ($\Delta = ${h2.diff_means.toFixed(3)}\text{ s}$)</td></tr>
+        <tr><td class="text-muted">Estadístico $t$ de Welch</td><td class="text-info fw-bold">t = ${h2.t_statistic.toFixed(4)} ($t_{\\alpha/2} = \\pm ${h2.t_critical.toFixed(4)}$)</td></tr>
+        <tr><td class="text-muted">Valor-$p$ (Welch / Mann-Whitney)</td><td>Welch $p = $ <code>${h2.p_value.toExponential(4)}</code> | Mann-Whitney $p = $ <code>${(h2.mann_whitney.p_value || 0).toExponential(4)}</code></td></tr>
+    `;
+    document.getElementById('s9Decision2').textContent = h2.decision;
+    document.getElementById('s9Interp2').textContent = h2.context_interpretation;
+    document.getElementById('s9Just2').textContent = h2.justification;
+
+    // 10. Intervalos de confianza
+    const cis = [s10.ci_wait_baseline, s10.ci_wait_proposed, s10.ci_wait_diff, s10.ci_match_rate, s10.ci_compatibility];
+    document.getElementById('s10CITableBody').innerHTML = cis.map(ci => `
+        <tr>
+            <td><strong class="text-warning">${ci.parameter}</strong><br><small class="text-muted">${ci.description}</small></td>
+            <td><span class="badge bg-dark border border-secondary">${ci.confidence_level_pct}%</span></td>
+            <td class="fw-bold">${ci.point_estimate.toFixed(3)} ${ci.unit}</td>
+            <td>${ci.standard_error.toFixed(4)} ${ci.unit}</td>
+            <td>&plusmn;${ci.margin_of_error.toFixed(3)} ${ci.unit}</td>
+            <td class="text-info fw-bold">[${ci.lower_bound.toFixed(3)}, ${ci.upper_bound.toFixed(3)}] ${ci.unit}</td>
+        </tr>
+    `).join('');
+    document.getElementById('s10CIInterpretation').textContent = s10.interpretation;
+
+    Plotly.newPlot('chartSec10CI', [
+        {
+            x: [cib.point_estimate, cip.point_estimate],
+            y: ['Política Actual (θ=' + cfg.threshold_baseline + ')', 'Política Propuesta (θ=' + cfg.threshold_proposed + ')'],
+            error_x: {
+                type: 'data',
+                array: [cib.margin_of_error, cip.margin_of_error],
+                visible: true,
+                color: '#F59E0B',
+                thickness: 3,
+                width: 8
+            },
+            type: 'scatter',
+            mode: 'markers',
+            marker: { size: 12, color: ['#C98A4B', '#7FA86A'] },
+            name: 'Estimación Puntual ± IC'
+        }
+    ], {
+        ...plotlyDarkLayout,
+        title: { text: `Intervalos de Confianza (${cib.confidence_level_pct}%) vs. Meta SLA`, font: { size: 13 } },
+        xaxis: { title: 'Tiempo Medio de Espera μ_W (segundos)', gridcolor: '#4A3527' },
+        yaxis: { gridcolor: '#4A3527' },
+        shapes: [{
+            type: 'line',
+            x0: cfg.sla_target_wait, x1: cfg.sla_target_wait,
+            y0: -0.5, y1: 1.5,
+            line: { color: '#D96A52', width: 2, dash: 'dash' }
+        }],
+        margin: { t: 40, r: 25, l: 170, b: 45 }
+    });
+
+    // 11. Escenarios y sensibilidad
+    document.getElementById('s11ScenariosTableBody').innerHTML = s11.scenarios.map(sc => `
+        <tr>
+            <td><strong class="text-warning">${sc.code}</strong><br><small class="text-light">${sc.name}</small></td>
+            <td class="small text-secondary">${sc.description}</td>
+            <td><code>${sc.theta.toFixed(2)}</code></td>
+            <td class="fw-bold text-light">${sc.mean_wait.toFixed(2)} s</td>
+            <td class="small text-info">[${sc.ci_lower.toFixed(2)}, ${sc.ci_upper.toFixed(2)}] s</td>
+            <td>
+                <span class="badge ${sc.delta_wait_pct <= 0 ? 'badge-success' : 'badge-danger'}">
+                    ${sc.delta_wait_pct >= 0 ? '+' : ''}${sc.delta_wait_pct.toFixed(1)}%
+                </span>
+            </td>
+            <td>${sc.mean_match_rate.toFixed(1)}%</td>
+            <td><span class="badge bg-dark border border-secondary text-success">${sc.mean_compatibility.toFixed(1)}%</span></td>
+        </tr>
+    `).join('');
+
+    const boxColors = ['#C98A4B', '#7FA86A', '#D96A52', '#7FA8A0'];
+    const boxTraces = s11.scenarios.map((sc, idx) => ({
+        y: sc.replica_waits,
+        type: 'box',
+        name: sc.code,
+        boxpoints: 'all',
+        jitter: 0.35,
+        pointpos: -1.5,
+        marker: { color: boxColors[idx % boxColors.length], size: 5 }
+    }));
+    Plotly.newPlot('chartSec11ScenariosBox', boxTraces, {
+        ...plotlyDarkLayout,
+        yaxis: { title: 'Tiempo Medio de Espera por Réplica (s)', gridcolor: '#4A3527' },
+        showlegend: false,
+        margin: { t: 25, r: 25, l: 55, b: 45 }
+    });
+
+    const sg = s11.sensitivity_grid;
+    Plotly.newPlot('chartSec11Sensitivity', [
+        {
+            x: sg.map(p => p.theta),
+            y: sg.map(p => p.mean_wait),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Espera Media W̄ (s)',
+            line: { color: '#C98A4B', width: 3 },
+            marker: { size: 8 }
+        },
+        {
+            x: sg.map(p => p.theta),
+            y: sg.map(p => p.mean_compatibility),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Compatibilidad C̄ (%)',
+            yaxis: 'y2',
+            line: { color: '#7FA86A', width: 3, dash: 'dot' },
+            marker: { size: 8 }
+        },
+        {
+            x: sg.map(p => p.theta),
+            y: sg.map(p => p.mean_match_rate),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Tasa Emparejamiento ρ (%)',
+            yaxis: 'y2',
+            line: { color: '#7FA8A0', width: 2, dash: 'dash' },
+            marker: { size: 7 }
+        }
+    ], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Umbral de Compatibilidad θ', gridcolor: '#4A3527' },
+        yaxis: { title: 'Tiempo Medio de Espera W̄ (s)', gridcolor: '#4A3527' },
+        yaxis2: { title: 'Porcentaje (%)', overlaying: 'y', side: 'right', showgrid: false, range: [40, 102] },
+        legend: { orientation: 'h', y: 1.15 },
+        margin: { t: 35, r: 55, l: 55, b: 45 }
+    });
+
+    // 12. Conclusiones y referencias
+    document.getElementById('s12Respuesta').textContent = s12.respuesta_pregunta;
+    renderListItems('s12SustentoList', s12.sustento_puntos);
+    document.getElementById('s12Recomendacion').textContent = s12.recomendacion_decision;
+    renderListItems('s12ReferenciasList', s12.referencias);
+
+    if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.getElementById('intMainContent'), {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\[', right: '\\]', display: true},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+    }
+}
+
+function switchSec8HistMode(mode) {
+    sec8HistMode = mode;
+    document.getElementById('btnViewReplicasHist').className = mode === 'replicas' ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('btnViewPooledHist').className = mode === 'pooled' ? 'btn btn-primary' : 'btn btn-secondary';
+    if (currentIntegradoraStudy) {
+        renderSec8Charts(currentIntegradoraStudy);
+    }
+}
+
+function renderSec8Charts(st) {
+    const cfg = st.config;
+    const s8 = st.sec8_estudio_estadistico;
+    const isRep = sec8HistMode === 'replicas';
+    const rawData = isRep ? s8.replica_mean_waits : s8.pooled_wait_sample;
+    const statsObj = isRep ? s8.replica_means_stats : s8.pooled_wait_stats;
+    const kdeObj = isRep ? s8.kde_replicas : s8.kde_pooled;
+
+    document.getElementById('s8HistTitle').textContent = isRep
+        ? `Histograma y KDE de las Medias por Réplica (R = ${s8.replica_means_stats.n} réplicas)`
+        : `Histograma y KDE de Tiempos Individuales de Jugadores (n = ${s8.pooled_wait_stats.n.toLocaleString()} obs.)`;
+
+    const tracesHist = [
+        {
+            x: rawData,
+            type: 'histogram',
+            histnorm: 'probability density',
+            name: 'Densidad Empírica',
+            marker: { color: 'rgba(201, 138, 75, 0.55)', line: { color: '#C98A4B', width: 1 } }
+        }
+    ];
+    if (kdeObj && kdeObj.x && kdeObj.x.length > 0) {
+        tracesHist.push({
+            x: kdeObj.x,
+            y: kdeObj.y,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Curva KDE',
+            line: { color: '#7FA8A0', width: 3 }
+        });
+    }
+
+    Plotly.newPlot('chartSec8Histogram', tracesHist, {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Tiempo de Espera en Cola (segundos)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Densidad', gridcolor: '#4A3527' },
+        shapes: [
+            {
+                type: 'line',
+                x0: statsObj.mean, x1: statsObj.mean,
+                y0: 0, y1: 1, yref: 'paper',
+                line: { color: '#7FA86A', width: 2.5 }
+            },
+            {
+                type: 'line',
+                x0: statsObj.median, x1: statsObj.median,
+                y0: 0, y1: 1, yref: 'paper',
+                line: { color: '#D9A441', width: 2, dash: 'dot' }
+            },
+            {
+                type: 'line',
+                x0: cfg.sla_target_wait, x1: cfg.sla_target_wait,
+                y0: 0, y1: 1, yref: 'paper',
+                line: { color: '#D96A52', width: 2, dash: 'dash' }
+            }
+        ],
+        legend: { orientation: 'h', y: 1.14 },
+        margin: { t: 30, r: 25, l: 55, b: 45 }
+    });
+
+    // Convergencia por réplica
+    const conv = s8.convergence;
+    Plotly.newPlot('chartSec8Convergence', [
+        {
+            x: conv.replica_indices,
+            y: conv.running_ci_upper,
+            type: 'scatter',
+            mode: 'lines',
+            line: { width: 0 },
+            showlegend: false,
+            hoverinfo: 'skip'
+        },
+        {
+            x: conv.replica_indices,
+            y: conv.running_ci_lower,
+            type: 'scatter',
+            mode: 'lines',
+            fill: 'tonexty',
+            fillcolor: 'rgba(127, 168, 160, 0.20)',
+            line: { width: 0 },
+            name: 'Banda IC 95% Acumulada'
+        },
+        {
+            x: conv.replica_indices,
+            y: s8.replica_mean_waits,
+            type: 'scatter',
+            mode: 'markers',
+            name: 'Media de cada Réplica W̄_r',
+            marker: { color: '#C98A4B', size: 6, opacity: 0.75 }
+        },
+        {
+            x: conv.replica_indices,
+            y: conv.running_means,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Media Acumulada Global',
+            line: { color: '#7FA86A', width: 3 }
+        }
+    ], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Número de Réplicas Acumuladas (r = 1 ... R)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Tiempo Medio de Espera (segundos)', gridcolor: '#4A3527' },
+        legend: { orientation: 'h', y: 1.14 },
+        margin: { t: 30, r: 25, l: 55, b: 45 }
+    });
+
+    // Boxplot horizontal
+    Plotly.newPlot('chartSec8Boxplot', [
+        {
+            x: s8.replica_mean_waits,
+            type: 'box',
+            name: 'Medias por Réplica (W̄_r)',
+            boxpoints: 'all',
+            jitter: 0.4,
+            pointpos: -1.6,
+            marker: { color: '#C98A4B', size: 6 },
+            boxmean: 'sd'
+        }
+    ], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Tiempo Promedio de Espera por Réplica (segundos)', gridcolor: '#4A3527' },
+        margin: { t: 20, r: 25, l: 140, b: 45 }
+    });
+
+    // ECDF
+    const ecdfObj = isRep ? s8.ecdf_replicas : s8.ecdf_pooled;
+    Plotly.newPlot('chartSec8Ecdf', [
+        {
+            x: ecdfObj.x,
+            y: ecdfObj.y,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'F_n(w) Acumulada',
+            line: { color: '#7FA8A0', width: 2.5, shape: 'hv' }
+        }
+    ], {
+        ...plotlyDarkLayout,
+        xaxis: { title: 'Tiempo de Espera w (segundos)', gridcolor: '#4A3527' },
+        yaxis: { title: 'Probabilidad Acumulada P(W ≤ w)', gridcolor: '#4A3527', range: [0, 1.05] },
+        margin: { t: 20, r: 25, l: 55, b: 45 }
+    });
+}
+
+function downloadIntegradoraMarkdown() {
+    const cfg = collectConfig();
+    const params = new URLSearchParams(cfg).toString();
+    window.location.href = '/api/integradora/markdown?' + params;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    runIntegradora();
+});
+</script>
+{% endblock %}

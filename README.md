@@ -95,9 +95,10 @@ soporte `{1, 2, ...}` excluye el 0 observado.
 │   ├── statistics.py       # Pruebas estadísticas (χ², KS, Shapiro, Anderson, Q-Q Plot)
 │   ├── stats.py            # Puente de compatibilidad hacia statistics.py
 │   ├── matchmaking.py      # Simulador de cola estocástica y algoritmo de compatibilidad
+│   ├── integradora.py      # Motor de la Actividad Integradora (12 apartados, réplicas, pruebas t/Welch, IC y sensibilidad)
 │   ├── utils.py            # Estadísticas descriptivas, frecuencias, KDE, ECDF y codificador JSON
 │   ├── templates/          # Plantillas HTML con Bootstrap 5 y Plotly.js
-│   │   ├── base.html       # Estructura base con barra lateral de 9 secciones
+│   │   ├── base.html       # Estructura base con barra lateral de navegación
 │   │   ├── index.html      # Módulo 1: Contexto y Dashboard
 │   │   ├── dataset.html    # Módulo 2: Explorador multivariable del Dataset
 │   │   ├── cleaning.html   # Módulo 3: Limpieza y resumen Antes/Después
@@ -107,7 +108,8 @@ soporte `{1, 2, ...}` excluye el 0 observado.
 │   │   ├── distributions.html # Módulo 11: Selección final y justificación académica
 │   │   ├── simulation.html # Módulos 12, 13: Generación y Comparación Real vs Simulado
 │   │   ├── matchmaking.html# Módulos 14, 15, 16, 17: Simulador de Matchmaking en vivo
-│   │   └── report.html     # Módulo 18: Informe académico completo de 20 secciones
+│   │   ├── report.html     # Módulo 18: Informe académico completo de 20 secciones
+│   │   └── integradora.html# Módulo Nuevo: Actividad Integradora (12 apartados completos)
 │   └── static/
 │       ├── css/style.css   # Estilos CS:GO dark-mode
 │       └── js/main.js      # Configuraciones globales de Plotly y utilidades
@@ -168,7 +170,7 @@ La aplicación se iniciará en modo interactivo en:
 
 ---
 
-## 📊 Descripción de los 18 Módulos Implementados
+## 📊 Descripción de los Módulos Implementados
 
 1. **Contexto del Matchmaking (Dashboard):** Visualización interactiva del flujo del jugador, distinción epistemológica entre datos reales, parámetros estimados, modelos teóricos y reglas de emparejamiento.
 2. **Explorador del Dataset:** Selector de archivos CSV (soporta `dataset.csv`, `mm_master_demos.csv`, `esea_meta_demos`, etc.), visualización de primeras/últimas filas, dimensiones, conteo de nulos, duplicados y estadísticas básicas.
@@ -189,6 +191,7 @@ La aplicación se iniciará en modo interactivo en:
 17. **Resultados de la Simulación:** Métricas de partidas creadas, jugadores en espera, tasa de emparejamiento, tiempos promedio/máximos de espera, gráficos temporales del tamaño de cola e histograma de esperas.
 18. **Marco Teórico y Ecuaciones Matemáticas:** Módulo interactivo con la formulación axiomática completa de Kolmogórov, deducciones por máxima verosimilitud (MLE), ecuaciones de PMF/PDF/CDF, demostración del teorema de la transformada inversa, algoritmo Box-Muller, modelación del matchmaking por distancias normalizadas y glosario de notación en KaTeX.
 19. **Informe Automático (20 Secciones):** Generación en tiempo real de un reporte técnico universitario completo con los números, parámetros y decisiones reales obtenidas de la muestra. Exportable a Markdown (.md) y preparado para impresión o guardado en PDF.
+20. **Actividad Integradora (`/integradora` — Apartado Nuevo Independiente):** Desarrolla íntegramente los 12 puntos de la Actividad Integradora (*1. Definición del sistema, 2. Planteamiento del problema, 3. Variables y parámetros, 4. Relaciones lógico-matemáticas, 5. Construcción del modelo DES, 6. Verificación y validación, 7. Diseño experimental multirréplica, 8. Estudio estadístico de la variable de interés $W$, 9. Pruebas de hipótesis $t$-Student / Welch / Wilcoxon / Mann-Whitney, 10. Intervalos de confianza, 11. Análisis de 4 escenarios y sensibilidad paramétrica, y 12. Conclusiones, toma de decisiones y fuentes APA 7*). Exportable a Markdown (`.md`) y PDF para sustentación.
 
 ---
 

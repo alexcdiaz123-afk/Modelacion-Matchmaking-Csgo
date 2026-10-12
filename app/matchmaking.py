@@ -74,7 +74,8 @@ class MatchmakingSimulator:
                  compatibility_threshold=0.20, 
                  seed=42,
                  discrete_config=None,
-                 continuous_config=None):
+                 continuous_config=None,
+                 inter_arrival_scale=2.5):
         """
         Inicializa el simulador.
         
@@ -85,10 +86,12 @@ class MatchmakingSimulator:
             seed: Semilla para reproducibilidad.
             discrete_config: Tupla (nombre_distribución, dict_parámetros, min_val, max_val).
             continuous_config: Tupla (nombre_distribución, dict_parámetros, min_val, max_val).
+            inter_arrival_scale: Media del tiempo exponencial entre llegadas (segundos, β_arr = 1/λ_arr).
         """
         self.players_per_match = int(players_per_match)
         self.max_queue_size = int(max_queue_size)
         self.compatibility_threshold = float(compatibility_threshold)
+        self.inter_arrival_scale = max(0.05, float(inter_arrival_scale))
         self.seed = int(seed)
         self.rng = np.random.default_rng(self.seed)
         
@@ -110,6 +113,7 @@ class MatchmakingSimulator:
         self.wait_times: List[float] = []
         self.compatibility_scores: List[float] = []
         self.total_attempts: int = 0
+        self.rejected_count: int = 0
         
     def generate_player(self, arrival_time: float) -> Player:
         """
@@ -208,7 +212,7 @@ class MatchmakingSimulator:
         self.total_attempts += 1
         
         # Tiempo de inter-llegada exponencial (Proceso de Poisson para solicitudes)
-        inter_arrival = float(self.rng.exponential(scale=2.5))
+        inter_arrival = float(self.rng.exponential(scale=self.inter_arrival_scale))
         self.current_time += inter_arrival
         
         new_player = self.generate_player(self.current_time)
@@ -222,6 +226,7 @@ class MatchmakingSimulator:
         
         # Comprobar capacidad de la cola
         if len(self.queue) >= self.max_queue_size:
+            self.rejected_count += 1
             event['type'] = 'queue_full'
             event['message'] = f"Cola llena ({self.max_queue_size}). Jugador #{new_player.id:03d} fue rechazado."
             self.history_events.append(event)
@@ -308,6 +313,8 @@ class MatchmakingSimulator:
         
         match_rate = (total_matched / total_gen * 100) if total_gen > 0 else 0.0
         avg_wait = float(np.mean(self.wait_times)) if self.wait_times else 0.0
+        std_wait = float(np.std(self.wait_times, ddof=1)) if len(self.wait_times) > 1 else 0.0
+        median_wait = float(np.median(self.wait_times)) if self.wait_times else 0.0
         max_wait = float(np.max(self.wait_times)) if self.wait_times else 0.0
         avg_compat = float(np.mean(self.compatibility_scores) * 100) if self.compatibility_scores else 0.0
         
@@ -315,15 +322,19 @@ class MatchmakingSimulator:
             'total_players': int(total_gen),
             'players_matched': int(total_matched),
             'players_in_queue': int(in_queue),
+            'players_rejected': int(self.rejected_count),
             'matches_created': int(n_matches),
             'match_rate': round(float(match_rate), 2),
-            'avg_wait_time': round(float(avg_wait), 2),
-            'max_wait_time': round(float(max_wait), 2),
+            'avg_wait_time': round(float(avg_wait), 4),
+            'std_wait_time': round(float(std_wait), 4),
+            'median_wait_time': round(float(median_wait), 4),
+            'max_wait_time': round(float(max_wait), 4),
             'avg_compatibility': round(float(avg_compat), 2),
+            'horizon_time': round(float(self.current_time), 2),
             'total_attempts': int(self.total_attempts),
             'queue_sizes': self.history_queue_size,
             'time_points': [round(t, 2) for t in self.history_time],
-            'wait_times': [round(w, 2) for w in self.wait_times],
+            'wait_times': [round(w, 4) for w in self.wait_times],
             'matches_count_timeline': self.history_matches_count,
             'matches': [m.to_dict() for m in self.matches],
             'queued_players': [p.to_dict() for p in self.queue],
@@ -344,4 +355,5 @@ class MatchmakingSimulator:
         self.wait_times = []
         self.compatibility_scores = []
         self.total_attempts = 0
+        self.rejected_count = 0
         self.rng = np.random.default_rng(self.seed)
