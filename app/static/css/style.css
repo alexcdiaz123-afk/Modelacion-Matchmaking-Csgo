@@ -1018,3 +1018,137 @@ body {
     vertical-align: middle;
 }
 
+
+/* ============================================
+   QUICK LINKS — FLUJO DE TRABAJO (Dashboard)
+   ============================================ */
+
+.quick-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+}
+
+.quick-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-link-card {
+    background: var(--bg-card-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 14px 14px;
+    text-align: center;
+    transition: var(--transition);
+    height: 100%;
+    position: relative;
+}
+
+.quick-link:hover .quick-link-card {
+    border-color: var(--accent);
+    background: rgba(201, 138, 75, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(201, 138, 75, 0.15);
+}
+
+.quick-link-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 180, 216, 0.12);
+    border: 1px solid rgba(0, 180, 216, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    color: var(--info);
+    transition: var(--transition);
+}
+
+.quick-link-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.quick-link:hover .quick-link-icon {
+    background: rgba(201, 138, 75, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.quick-link-step {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.quick-link-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.quick-link-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0;
+    line-height: 1.3;
+}
+
+/* Actividad Integradora — banner destacado */
+.quick-link-integradora {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.quick-link-integradora:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-link-card-int {
+    background: linear-gradient(135deg, rgba(201, 138, 75, 0.10) 0%, rgba(50, 36, 28, 0.85) 100%);
+    border: 1px solid rgba(201, 138, 75, 0.35);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    transition: var(--transition);
+}
+
+.quick-link-integradora:hover .quick-link-card-int {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(201, 138, 75, 0.18) 0%, rgba(50, 36, 28, 0.9) 100%);
+    box-shadow: 0 4px 18px rgba(201, 138, 75, 0.18);
+}
+
+.quick-link-icon-int {
+    width: 44px;
+    height: 44px;
+    background: rgba(201, 138, 75, 0.15);
+    border: 1px solid rgba(201, 138, 75, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+}
+
+.quick-link-icon-int svg {
+    width: 22px;
+    height: 22px;
+}
