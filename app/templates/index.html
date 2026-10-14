@@ -204,52 +204,73 @@
         <h5>Flujo de Trabajo</h5>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-3 mb-3">
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
                 <a href="{{ url_for('dataset_page') }}" class="quick-link">
                     <div class="quick-link-card">
                         <div class="quick-link-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                         </div>
-                        <h6>1. Explorar Dataset</h6>
-                        <p>Visualizar y entender los datos</p>
+                        <div class="quick-link-step">1</div>
+                        <h6 class="quick-link-title">Explorar Dataset</h6>
+                        <p class="quick-link-desc">Visualizar y entender los datos</p>
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3">
                 <a href="{{ url_for('cleaning_page') }}" class="quick-link">
                     <div class="quick-link-card">
                         <div class="quick-link-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
                         </div>
-                        <h6>2. Limpiar Datos</h6>
-                        <p>Preparar para el análisis</p>
+                        <div class="quick-link-step">2</div>
+                        <h6 class="quick-link-title">Limpiar Datos</h6>
+                        <p class="quick-link-desc">Preparar para el análisis</p>
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3">
                 <a href="{{ url_for('variables_page') }}" class="quick-link">
                     <div class="quick-link-card">
                         <div class="quick-link-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                         </div>
-                        <h6>3. Seleccionar Variables</h6>
-                        <p>Identificar discretas y continuas</p>
+                        <div class="quick-link-step">3</div>
+                        <h6 class="quick-link-title">Seleccionar Variables</h6>
+                        <p class="quick-link-desc">Identificar discretas y continuas</p>
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3">
                 <a href="{{ url_for('matchmaking_page') }}" class="quick-link">
                     <div class="quick-link-card">
                         <div class="quick-link-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </div>
-                        <h6>4. Simular Matchmaking</h6>
-                        <p>Aplicar el modelo</p>
+                        <div class="quick-link-step">4</div>
+                        <h6 class="quick-link-title">Simular Matchmaking</h6>
+                        <p class="quick-link-desc">Aplicar el modelo</p>
                     </div>
                 </a>
             </div>
         </div>
+        <a href="{{ url_for('integradora_page') }}" class="quick-link-integradora d-block mt-3">
+            <div class="quick-link-card-int d-flex align-items-center gap-3">
+                <div class="quick-link-icon-int flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-warning text-dark fw-bold" style="font-size:0.72rem;">Apartado Final</span>
+                        <span class="fw-bold text-light" style="font-size:0.95rem;">5. Actividad Integradora</span>
+                    </div>
+                    <p class="mb-0 text-secondary small">Construcción, simulación multirréplica y análisis completo del modelo (12 apartados)</p>
+                </div>
+                <div class="ms-auto flex-shrink-0">
+                    <span class="badge bg-warning text-dark px-3 py-2" style="font-size:0.8rem;">Abrir &rarr;</span>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
 {% endblock %}
